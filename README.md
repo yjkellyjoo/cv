@@ -6,7 +6,8 @@ Built with [Astro](https://astro.build) as a fully static site, deployed to Clou
 
 ## Status
 
-Barebones scaffold. Content migration from the Notion export is not done yet.
+Content is migrated — 15 projects, 4 roles, 4 education entries, 3 research projects, 2 publications and
+3 awards live in `src/content/`. The pages that render them are not built yet.
 
 ## Develop
 
