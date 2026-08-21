@@ -1,18 +1,24 @@
 ---
-
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { profile } from '../data/profile';
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Yejin Kelly Joo — Web3 Engineer</title>
-	</head>
-	<body>
-		<h1>Yejin Kelly Joo</h1>
-		<p>Web3 Engineer. Site under construction.</p>
-	</body>
-</html>
+<BaseLayout title={profile.name} isHome>
+	<div class="wrapper">
+		<h1>{profile.name}</h1>
+		<p class="lede">{profile.title}</p>
+		{profile.summary.map((paragraph) => <p>{paragraph}</p>)}
+	</div>
+
+	<style>
+		.lede {
+			color: var(--text-muted);
+			font-size: var(--step-1);
+			margin-block: var(--space-2xs) var(--space-m);
+		}
+
+		p + p {
+			margin-block-start: var(--space-s);
+		}
+	</style>
+</BaseLayout>

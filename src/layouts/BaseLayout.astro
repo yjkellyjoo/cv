@@ -1,0 +1,98 @@
+---
+import { DEFAULT_LOCALE } from '../i18n/config';
+import { profile } from '../data/profile';
+import '../styles/global.css';
+
+interface Props {
+	/** Page title. The site name is appended automatically. */
+	title: string;
+	/** Meta description. Falls back to the profile tagline. */
+	description?: string;
+	/** Set on the one page that is the site root, to avoid " — Name" doubling. */
+	isHome?: boolean;
+}
+
+const { title, description = profile.tagline, isHome = false } = Astro.props;
+
+const lang = Astro.currentLocale ?? DEFAULT_LOCALE;
+const fullTitle = isHome ? `${profile.name} — ${profile.title}` : `${title} — ${profile.name}`;
+
+// Astro.site is set in astro.config.ts, so this resolves to the canonical
+// yjkellyjoo.dev URL even when the page is served from the Swarm mirror.
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang={lang}>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>{fullTitle}</title>
+		<meta name="description" content={description} />
+
+		{/* The Swarm mirror serves the same markup, so it points here rather
+		    than competing with the canonical copy in search. */}
+		<link rel="canonical" href={canonical} />
+
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+	</head>
+
+	<body>
+		<a class="visually-hidden skip-link" href="#main">Skip to content</a>
+
+		<header class="site-header wrapper wrapper--wide">
+			<a class="site-header__name" href="/">{profile.name}</a>
+		</header>
+
+		<main id="main">
+			<slot />
+		</main>
+
+		<footer class="site-footer wrapper wrapper--wide">
+			<p>{profile.name} — {profile.title}</p>
+		</footer>
+
+		<style>
+			.skip-link:focus {
+				position: absolute;
+				inset-block-start: var(--space-2xs);
+				inset-inline-start: var(--space-2xs);
+				z-index: 10;
+				background-color: var(--surface);
+				color: var(--text);
+				padding: var(--space-2xs) var(--space-xs);
+				border-radius: var(--radius-m);
+				border: var(--border-width) solid var(--border-strong);
+			}
+
+			.site-header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: var(--space-s);
+				padding-block: var(--space-m);
+			}
+
+			.site-header__name {
+				color: var(--text);
+				font-weight: var(--weight-medium);
+				letter-spacing: var(--tracking-tight);
+				text-decoration: none;
+			}
+
+			.site-header__name:hover {
+				color: var(--accent);
+			}
+
+			.site-footer {
+				border-block-start: var(--border-width) solid var(--border);
+				color: var(--text-muted);
+				font-size: var(--step--1);
+				margin-block-start: var(--space-3xl);
+				padding-block: var(--space-l);
+			}
+		</style>
+	</body>
+</html>
