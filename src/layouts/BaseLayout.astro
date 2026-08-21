@@ -4,18 +4,19 @@ import { profile } from '../data/profile';
 import '../styles/global.css';
 
 interface Props {
-	/** Page title. The site name is appended automatically. */
-	title: string;
+	/**
+	 * Page title, suffixed with the site name. Omit on the site root, which
+	 * titles itself "Name — Role" rather than doubling the name.
+	 */
+	title?: string;
 	/** Meta description. Falls back to the profile tagline. */
 	description?: string;
-	/** Set on the one page that is the site root, to avoid " — Name" doubling. */
-	isHome?: boolean;
 }
 
-const { title, description = profile.tagline, isHome = false } = Astro.props;
+const { title, description = profile.tagline } = Astro.props;
 
 const lang = Astro.currentLocale ?? DEFAULT_LOCALE;
-const fullTitle = isHome ? `${profile.name} — ${profile.title}` : `${title} — ${profile.name}`;
+const fullTitle = title ? `${title} — ${profile.name}` : `${profile.name} — ${profile.title}`;
 
 // Astro.site is set in astro.config.ts, so this resolves to the canonical
 // yjkellyjoo.dev URL even when the page is served from the Swarm mirror.

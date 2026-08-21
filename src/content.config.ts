@@ -8,6 +8,15 @@ import { DEFAULT_LOCALE, LOCALES } from './i18n/config';
  * Every collection carries `lang`, constrained to the locales declared in
  * `src/i18n/config.ts`. English is the only entry today; adding another there
  * makes these schemas accept it without a refactor here.
+ *
+ * Note what this does *not* do. Entries are keyed by filename, not by locale, so
+ * a second locale needs two further things at that point: a `generateId` on the
+ * loader that strips the locale segment (otherwise `ko/pet-id.md` yields the id
+ * `ko/pet-id`, and the anchor becomes `#ko/pet-id`), and a `translationKey` to
+ * pair a translated entry with its original so `reference()` resolves within the
+ * right locale. Both are deliberately deferred — building them for a locale that
+ * does not exist yet would be speculative. English URLs are unaffected either
+ * way, because `prefixDefaultLocale` is false.
  */
 const lang = z.enum(LOCALES).default(DEFAULT_LOCALE);
 
@@ -40,8 +49,19 @@ const projects = defineCollection({
 		scale: z.enum(['Small', 'Medium', 'Big']),
 		/** Surfaced in "Selected work" on the home page. */
 		featured: z.boolean().default(false),
-		/** Live product, demo, or repo, where one is public. */
-		productLink: z.url().optional(),
+		/**
+		 * Outbound links, labelled because most projects have several of a
+		 * different kind — demo, deck, source, showcase. 10 of the 15 Notion
+		 * pages carry two or more, so a single `productLink` would lose them.
+		 */
+		links: z
+			.array(
+				z.object({
+					label: z.string(),
+					url: z.url(),
+				}),
+			)
+			.default([]),
 		lang,
 	}),
 });
@@ -101,6 +121,7 @@ const publications = defineCollection({
 		date: z.coerce.date(),
 		/** e.g. "1st Author". */
 		authorship: z.string(),
+		/** Site-relative path (e.g. /thesis/prosmart.pdf), so not a full URL. */
 		pdfUrl: z.string().optional(),
 		demoUrl: z.url().optional(),
 		project: reference('projects').optional(),
@@ -117,7 +138,12 @@ const awards = defineCollection({
 		track: z.string().optional(),
 		/** e.g. "1st Place", "Finalist". */
 		placement: z.string(),
-		date: z.coerce.date(),
+		/**
+		 * Year only. The export dates awards no more precisely than this, and it
+		 * is all that gets displayed — the exact day, where it matters, comes
+		 * from the linked project.
+		 */
+		year: z.number().int(),
 		project: reference('projects').optional(),
 		lang,
 	}),

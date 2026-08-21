@@ -54,7 +54,7 @@ CI-based upload — the [`ethersphere/swarm-actions`](https://github.com/ethersp
 
 Two build settings are load-bearing. Get them wrong and the site still works on Cloudflare Pages while breaking on Swarm.
 
-1. **`trailingSlash: 'always'` with `build.format: 'directory'`** (`astro.config.mjs`) so every route emits `<route>/index.html`, which is what the uploaded manifest's `index-document: index.html` resolves against.
+1. **`trailingSlash: 'always'` with `build.format: 'directory'`** (`astro.config.ts`) so every route emits `<route>/index.html`, which is what the uploaded manifest's `index-document: index.html` resolves against.
 2. **Use the CID-subdomain or ENS URL, never the path form.** Astro emits root-absolute asset URLs (`/_astro/…`). Those 404 under `https://bzz.link/bzz/<ref>/…` but resolve correctly under `https://<cid>.bzz.link/` or a `.eth.limo` address. For local Bee previews, use the subdomain form too: `http://<cid>.localhost:1633/`.
 
 Payload size also matters more than usual, since every byte becomes a paid-for chunk — hence no web fonts and no client-side framework.

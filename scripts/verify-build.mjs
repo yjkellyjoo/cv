@@ -19,8 +19,12 @@ import { join, relative } from 'node:path';
 const DIST = 'dist';
 const ALLOWED_NON_INDEX_HTML = new Set(['404.html']);
 
-/** Error markers Astro prints without setting a non-zero exit code. */
-const SILENT_ERROR_PATTERNS = [/Invalid content reference/, /\[ERROR\]/];
+/**
+ * Astro logs these at error level but still exits 0. `[ERROR]` alone covers the
+ * dangling-reference case, since the logger prefixes it on the same line — the
+ * pattern is kept broad deliberately, to catch siblings we have not hit yet.
+ */
+const SILENT_ERROR_PATTERNS = [/\[ERROR\]/];
 
 const build = spawnSync('npx', ['astro', 'build'], {
 	encoding: 'utf8',
@@ -36,15 +40,20 @@ if (build.status !== 0) {
 	failures.push(`astro build exited with code ${build.status}`);
 }
 
-const offendingLines = new Set(
-	output
-		.split('\n')
-		.filter((line) => SILENT_ERROR_PATTERNS.some((pattern) => pattern.test(line)))
-		.map((line) => line.trim()),
-);
+// Only meaningful when the build claimed success; on a real failure the exit
+// code already says so, and these lines would just restate it as a false
+// "without failing".
+if (build.status === 0) {
+	const offendingLines = new Set(
+		output
+			.split('\n')
+			.filter((line) => SILENT_ERROR_PATTERNS.some((pattern) => pattern.test(line)))
+			.map((line) => line.trim()),
+	);
 
-for (const line of offendingLines) {
-	failures.push(`build logged an error without failing: ${line}`);
+	for (const line of offendingLines) {
+		failures.push(`build logged an error without failing: ${line}`);
+	}
 }
 
 /** Every .html file under dist, relative to dist. */

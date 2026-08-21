@@ -5,8 +5,12 @@
  * strong type hierarchy, one accent colour, monospace reserved for stack pills
  * and inline code.
  *
- * Two knobs are meant to be tuned by hand: `--accent-*` and the `--step-*` type
- * scale. Everything else derives from them.
+ * `--accent-hue` is a single knob: change it and the whole accent ramp re-hues.
+ * The `--step-*` type scale is a fixed fluid ramp — edit the rungs directly.
+ *
+ * Colour contrast is not incidental here. `--text`, `--text-muted` and
+ * `--text-faint` all clear WCAG AA (>= 4.5:1) against both `--bg` and
+ * `--surface` in both schemes; check any change to them before shipping.
  *
  * Colours use `light-dark()`, so each token is declared once and resolves via
  * `color-scheme`. Theme switching is therefore a single `color-scheme` override
@@ -52,10 +56,8 @@
 	--leading-normal: 1.6;
 
 	--tracking-tight: -0.02em;
-	--tracking-normal: 0;
 	--tracking-wide: 0.04em;
 
-	--weight-normal: 400;
 	--weight-medium: 500;
 	--weight-bold: 700;
 
@@ -71,6 +73,10 @@
 	--space-3xl: 6rem;
 
 	/* ── Measure and layout ──────────────────────────────────────────────── */
+	/* --measure caps line length for readability and is narrower than
+	   --content-width at every viewport, so it is what actually governs prose
+	   width. --content-width bounds the column that prose sits in; --wide-width
+	   is for full-bleed sections like the project grid. */
 	--measure: 68ch;
 	--content-width: 46rem;
 	--wide-width: 62rem;
@@ -92,14 +98,25 @@
 
 	--text: light-dark(oklch(24% 0.012 265), oklch(93% 0.006 85));
 	--text-muted: light-dark(oklch(46% 0.011 265), oklch(72% 0.008 85));
-	--text-faint: light-dark(oklch(60% 0.009 265), oklch(58% 0.008 85));
+	--text-faint: light-dark(oklch(54% 0.009 265), oklch(64% 0.008 85));
 
 	--border: light-dark(oklch(89% 0.006 265), oklch(31% 0.012 265));
 	--border-strong: light-dark(oklch(78% 0.008 265), oklch(42% 0.014 265));
 
-	--accent: light-dark(oklch(48% 0.14 250), oklch(74% 0.12 250));
-	--accent-hover: light-dark(oklch(41% 0.15 250), oklch(81% 0.1 250));
-	--accent-bg: light-dark(oklch(95% 0.03 250), oklch(28% 0.05 250));
+	/* Re-hue the whole accent ramp by changing this one number. */
+	--accent-hue: 250;
+	--accent: light-dark(
+		oklch(48% 0.14 var(--accent-hue)),
+		oklch(74% 0.12 var(--accent-hue))
+	);
+	--accent-hover: light-dark(
+		oklch(41% 0.15 var(--accent-hue)),
+		oklch(81% 0.1 var(--accent-hue))
+	);
+	--accent-bg: light-dark(
+		oklch(95% 0.03 var(--accent-hue)),
+		oklch(28% 0.05 var(--accent-hue))
+	);
 
 	--focus-ring: var(--accent);
 
@@ -123,7 +140,8 @@ html {
 	-webkit-text-size-adjust: 100%;
 	scroll-behavior: smooth;
 
-	/* Anchored project sections must not land under a sticky header. */
+	/* Breathing room above an anchored target, so /projects/#pet-id does not
+	   land with the heading flush to the viewport edge. */
 	scroll-padding-block-start: var(--space-xl);
 }
 
