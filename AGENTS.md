@@ -29,6 +29,8 @@ Swarm hosting constrains the build in two ways — see the README for the full r
 
 - Keep `trailingSlash: 'always'` and `build.format: 'directory'` in `astro.config.mjs`. Every route must build as `<route>/index.html`.
 - Keep the payload small. No web fonts, no client-side framework; every byte becomes a paid-for Swarm chunk.
+- Small amounts of self-contained vanilla JS are fine (theme toggle, project filter). The line that matters is
+  self-containment: an upload must render from its own manifest alone, so no third-party requests at runtime.
 
 ## Agent skills
 
