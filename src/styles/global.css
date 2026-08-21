@@ -1,0 +1,264 @@
+/*
+ * Design tokens and element defaults.
+ *
+ * Direction: restrained editorial with a developer accent. Generous whitespace,
+ * strong type hierarchy, one accent colour, monospace reserved for stack pills
+ * and inline code.
+ *
+ * `--accent-hue` is a single knob: change it and the whole accent ramp re-hues.
+ * The `--step-*` type scale is a fixed fluid ramp — edit the rungs directly.
+ *
+ * Colour contrast is not incidental here. `--text`, `--text-muted` and
+ * `--text-faint` all clear WCAG AA (>= 4.5:1) against both `--bg` and
+ * `--surface` in both schemes; check any change to them before shipping.
+ *
+ * Colours use `light-dark()`, so each token is declared once and resolves via
+ * `color-scheme`. Theme switching is therefore a single `color-scheme` override
+ * on :root rather than a duplicated block of dark values (see M4's toggle).
+ */
+
+:root {
+	color-scheme: light dark;
+}
+
+/* Manual overrides for the theme toggle. `color-scheme` drives light-dark(). */
+:root[data-theme='light'] {
+	color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+	color-scheme: dark;
+}
+
+:root {
+	/* ── Type families ───────────────────────────────────────────────────── */
+	/* System stacks only. Web fonts would add tens of KB of chunks to every
+	   Swarm retrieval, for a document whose job is to be read, not styled. */
+	--font-sans:
+		ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+		'Noto Sans KR', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+	--font-mono:
+		ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+	/* ── Type scale ──────────────────────────────────────────────────────── */
+	/* Fluid, ~1.2 minor third at narrow widths opening to ~1.25 at wide. */
+	--step--2: clamp(0.69rem, 0.68rem + 0.07vw, 0.73rem);
+	--step--1: clamp(0.83rem, 0.81rem + 0.12vw, 0.91rem);
+	--step-0: clamp(1rem, 0.96rem + 0.2vw, 1.13rem);
+	--step-1: clamp(1.2rem, 1.14rem + 0.31vw, 1.41rem);
+	--step-2: clamp(1.44rem, 1.34rem + 0.48vw, 1.76rem);
+	--step-3: clamp(1.73rem, 1.58rem + 0.72vw, 2.2rem);
+	--step-4: clamp(2.07rem, 1.86rem + 1.07vw, 2.75rem);
+	--step-5: clamp(2.49rem, 2.17rem + 1.56vw, 3.43rem);
+
+	--leading-tight: 1.15;
+	--leading-snug: 1.35;
+	--leading-normal: 1.6;
+
+	--tracking-tight: -0.02em;
+	--tracking-wide: 0.04em;
+
+	--weight-medium: 500;
+	--weight-bold: 700;
+
+	/* ── Spacing ─────────────────────────────────────────────────────────── */
+	--space-3xs: 0.25rem;
+	--space-2xs: 0.5rem;
+	--space-xs: 0.75rem;
+	--space-s: 1rem;
+	--space-m: 1.5rem;
+	--space-l: 2rem;
+	--space-xl: 3rem;
+	--space-2xl: 4.5rem;
+	--space-3xl: 6rem;
+
+	/* ── Measure and layout ──────────────────────────────────────────────── */
+	/* --measure caps line length for readability and is narrower than
+	   --content-width at every viewport, so it is what actually governs prose
+	   width. --content-width bounds the column that prose sits in; --wide-width
+	   is for full-bleed sections like the project grid. */
+	--measure: 68ch;
+	--content-width: 46rem;
+	--wide-width: 62rem;
+	--gutter: clamp(1rem, 0.6rem + 2vw, 2rem);
+
+	/* ── Radii and lines ─────────────────────────────────────────────────── */
+	--radius-s: 3px;
+	--radius-m: 6px;
+	--radius-pill: 999px;
+	--border-width: 1px;
+
+	/* ── Colour ──────────────────────────────────────────────────────────── */
+	/* Warm off-white paper against near-black ink, so neither theme is a
+	   pure-contrast glare. Accent is a deep ink blue: restrained and editorial,
+	   and legible on both grounds down to small text. */
+	--bg: light-dark(oklch(98.6% 0.004 85), oklch(17.5% 0.008 265));
+	--bg-subtle: light-dark(oklch(96.4% 0.006 85), oklch(21% 0.01 265));
+	--surface: light-dark(oklch(100% 0 0), oklch(24% 0.011 265));
+
+	--text: light-dark(oklch(24% 0.012 265), oklch(93% 0.006 85));
+	--text-muted: light-dark(oklch(46% 0.011 265), oklch(72% 0.008 85));
+	--text-faint: light-dark(oklch(54% 0.009 265), oklch(64% 0.008 85));
+
+	--border: light-dark(oklch(89% 0.006 265), oklch(31% 0.012 265));
+	--border-strong: light-dark(oklch(78% 0.008 265), oklch(42% 0.014 265));
+
+	/* Re-hue the whole accent ramp by changing this one number. */
+	--accent-hue: 250;
+	--accent: light-dark(
+		oklch(48% 0.14 var(--accent-hue)),
+		oklch(74% 0.12 var(--accent-hue))
+	);
+	--accent-hover: light-dark(
+		oklch(41% 0.15 var(--accent-hue)),
+		oklch(81% 0.1 var(--accent-hue))
+	);
+	--accent-bg: light-dark(
+		oklch(95% 0.03 var(--accent-hue)),
+		oklch(28% 0.05 var(--accent-hue))
+	);
+
+	--focus-ring: var(--accent);
+
+	/* ── Motion ──────────────────────────────────────────────────────────── */
+	--transition-fast: 120ms ease;
+}
+
+/* ── Reset-ish element defaults ──────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+* {
+	margin: 0;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+	scroll-behavior: smooth;
+
+	/* Breathing room above an anchored target, so /projects/#pet-id does not
+	   land with the heading flush to the viewport edge. */
+	scroll-padding-block-start: var(--space-xl);
+}
+
+body {
+	background-color: var(--bg);
+	color: var(--text);
+	font-family: var(--font-sans);
+	font-size: var(--step-0);
+	line-height: var(--leading-normal);
+	min-height: 100svh;
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+	line-height: var(--leading-tight);
+	letter-spacing: var(--tracking-tight);
+	text-wrap: balance;
+	font-weight: var(--weight-bold);
+}
+
+h1 {
+	font-size: var(--step-5);
+}
+h2 {
+	font-size: var(--step-3);
+}
+h3 {
+	font-size: var(--step-1);
+}
+h4 {
+	font-size: var(--step-0);
+}
+
+p,
+li {
+	text-wrap: pretty;
+}
+
+p,
+ul,
+ol {
+	max-inline-size: var(--measure);
+}
+
+a {
+	color: var(--accent);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.15em;
+	transition: color var(--transition-fast);
+}
+
+a:hover {
+	color: var(--accent-hover);
+}
+
+:focus-visible {
+	outline: 2px solid var(--focus-ring);
+	outline-offset: 2px;
+	border-radius: var(--radius-s);
+}
+
+code,
+kbd,
+samp,
+pre {
+	font-family: var(--font-mono);
+	font-size: 0.9em;
+}
+
+img,
+picture,
+svg {
+	display: block;
+	max-inline-size: 100%;
+	height: auto;
+}
+
+hr {
+	border: 0;
+	border-block-start: var(--border-width) solid var(--border);
+}
+
+/* Users who ask for less motion get none of it. */
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+/* ── Shared utilities ────────────────────────────────────────────────────── */
+
+.visually-hidden:not(:focus):not(:active) {
+	clip-path: inset(50%);
+	block-size: 1px;
+	inline-size: 1px;
+	overflow: hidden;
+	position: absolute;
+	white-space: nowrap;
+}
+
+.wrapper {
+	inline-size: min(100% - var(--gutter) * 2, var(--content-width));
+	margin-inline: auto;
+}
+
+.wrapper--wide {
+	inline-size: min(100% - var(--gutter) * 2, var(--wide-width));
+}

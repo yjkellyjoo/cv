@@ -27,7 +27,7 @@ A CV / personal site ported from a Notion export, deployed to Cloudflare Pages a
 
 Swarm hosting constrains the build in three ways — see the README for the full reasoning:
 
-- Keep `trailingSlash: 'always'` and `build.format: 'directory'` in `astro.config.mjs`. Every route must build as `<route>/index.html`.
+- Keep `trailingSlash: 'always'` and `build.format: 'directory'` in `astro.config.ts`. Every route must build as `<route>/index.html`.
 - Keep the payload small. No web fonts, no client-side framework; every byte becomes a paid-for Swarm chunk.
 - Small amounts of self-contained vanilla JS are fine (theme toggle, project filter). The constraint that matters is self-containment: an upload must render from its own manifest alone, so no third-party requests at runtime.
 
