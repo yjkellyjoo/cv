@@ -7,6 +7,5 @@ pdfUrl: https://ccs.korea.ac.kr/pds/DCOSS20.pdf
 project: i3-marketplace-security-testing
 ---
 
-An assessment of the security of IoT data marketplaces. The paper discusses what vulnerabilities exist in
-them using the STRIDE model, and presents a security assessment and certification framework that lets
-device owners examine their own devices' vulnerabilities.
+An assessment of the security of IoT data marketplaces.
+The paper discusses what vulnerabilities exist in them using the STRIDE model, and presents a security assessment and certification framework that lets device owners examine their own devices' vulnerabilities.

@@ -7,5 +7,4 @@ dateEnd: 2021-10-31
 project: oss-reliability-open-os
 ---
 
-Investigated **open source software reliability**, building an assessment metric and applying it to
-Gooroom OS and its dependency supply chain.
+Investigated **open source software reliability**, building an assessment metric and applying it to Gooroom OS and its dependency supply chain.

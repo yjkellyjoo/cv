@@ -6,5 +6,4 @@ dateEnd: 2020-04-30
 project: i3-marketplace-security-testing
 ---
 
-Participated in the **security assessment of the I³ IoT data marketplace**, a collaboration between Korea
-University and the University of Southern California.
+Participated in the **security assessment of the I³ IoT data marketplace**, a collaboration between Korea University and the University of Southern California.

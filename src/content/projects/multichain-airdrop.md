@@ -11,9 +11,8 @@ links:
     url: https://www.bifrostnetwork.com/bridge
 ---
 
-A scheduled Python job that finds new [Bifrost Bridge](https://www.bifrostnetwork.com/bridge) users and
-airdrops them native coin. The difficulty wasn't the transfer — it was detecting new addresses across
-several EVM chains quickly, then getting the airdrops out reliably on each of those chains.
+A scheduled Python job that finds new [Bifrost Bridge](https://www.bifrostnetwork.com/bridge) users and airdrops them native coin.
+The difficulty wasn't the transfer — it was detecting new addresses across several EVM chains quickly, then getting the airdrops out reliably on each of those chains.
 
 ![Airdrop running in production](../../assets/projects/multichain-airdrop/airdrop-run.png)
 
@@ -24,8 +23,7 @@ Two concurrent threads, deliberately running at different intervals:
 - **Newcomer detection** — every 12 seconds, looking for addresses new to the bridge.
 - **Airdrop** — every minute, batch-transferring BIFROST coin to whatever accumulated.
 
-Detecting far more often than airdropping is what makes the batching work: one transaction covers many
-recipients, so the gas cost per user falls sharply.
+Detecting far more often than airdropping is what makes the batching work: one transaction covers many recipients, so the gas cost per user falls sharply.
 
 ## Outcome
 

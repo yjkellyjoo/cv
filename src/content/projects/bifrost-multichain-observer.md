@@ -12,9 +12,8 @@ links:
     url: https://www.bifrostnetwork.com/bridge
 ---
 
-Built and maintained the Multichain Observer, a core piece of the BIFROST Network's infrastructure. It does
-three things: records event data from Bifrost Bridge contracts, serves that data over a REST API, and
-flags abnormal conditions in the bridge.
+Built and maintained the Multichain Observer, a core piece of the BIFROST Network's infrastructure.
+It does three things: records event data from Bifrost Bridge contracts, serves that data over a REST API, and flags abnormal conditions in the bridge.
 
 ![Bifrost Multichain Observer architecture](../../assets/projects/bifrost-multichain-observer/architecture.png)
 

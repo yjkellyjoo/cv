@@ -19,8 +19,4 @@ links:
 
 A platform for preserving the history, authenticity and ownership of physical goods on-chain.
 
-<!-- TODO(kelly): this project needs a real write-up. The Notion export carried only the four links
-     above and no prose, so there is nothing to port here. Worth covering: what problem drove it, what
-     you built over the three days, and what the team split was. -->
-
 > **Write-up pending.** The links above are live; the description still needs writing.

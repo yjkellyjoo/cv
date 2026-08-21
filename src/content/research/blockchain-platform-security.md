@@ -7,5 +7,5 @@ dateEnd: 2021-12-31
 project: smart-contract-vulnerability-detection
 ---
 
-Researched **smart contract source code vulnerability detection** under this programme. The work became my
-master's thesis, *ProSmart*.
+Researched **smart contract source code vulnerability detection** under this programme.
+The work became my master's thesis, *ProSmart*.

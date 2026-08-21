@@ -11,12 +11,11 @@ links:
     url: https://gooroom.kr/
 ---
 
-An investigation into open-source software reliability, assessing the security posture of
-[Gooroom OS](https://gooroom.kr/). Funded by ETRI's National Security Research Institute.
+An investigation into open-source software reliability, assessing the security posture of [Gooroom OS](https://gooroom.kr/).
+Funded by ETRI's National Security Research Institute.
 
 - Created a reliability assessment metric (신뢰성 검증 지표) for open source software.
-- Applied it to the packages Gooroom OS ships — 77 patched external packages, tracing back to 38 distinct
-  upstream projects.
+- Applied it to the packages Gooroom OS ships — 77 patched external packages, tracing back to 38 distinct upstream projects.
 - Analysed the supply chain risk that dependency graph carries.
 
 The findings themselves can't be published, for licensing reasons.
