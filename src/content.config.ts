@@ -47,7 +47,7 @@ const projects = defineCollection({
 			summary: z.string(),
 			/**
 			 * Emoji carried over from the Notion database. Projects with real
-			 * artwork use `logo` instead; a few have neither.
+			 * artwork set `logo` instead — every project has exactly one of the two.
 			 */
 			icon: z.string().optional(),
 			/** Project logo or key art, where one exists. */
