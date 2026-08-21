@@ -37,33 +37,42 @@ const dateRange = {
 
 const projects = defineCollection({
 	loader: markdownIn('projects'),
-	schema: z.object({
-		title: z.string(),
-		/** One line, used on cards and as the section standfirst. */
-		summary: z.string(),
-		/** Emoji or short glyph carried over from the Notion database. */
-		icon: z.string().optional(),
-		...dateRange,
-		/** Technologies. Also the source for the stack filter's options. */
-		stacks: z.array(z.string()).min(1),
-		scale: z.enum(['Small', 'Medium', 'Big']),
-		/** Surfaced in "Selected work" on the home page. */
-		featured: z.boolean().default(false),
-		/**
-		 * Outbound links, labelled because most projects have several of a
-		 * different kind — demo, deck, source, showcase. 10 of the 15 Notion
-		 * pages carry two or more, so a single `productLink` would lose them.
-		 */
-		links: z
-			.array(
-				z.object({
-					label: z.string(),
-					url: z.url(),
-				}),
-			)
-			.default([]),
-		lang,
-	}),
+	// Function form so the schema can use `image()`, which validates the file
+	// exists at build time and hands the page an optimizable ImageMetadata
+	// rather than a string that can rot.
+	schema: ({ image }) =>
+		z.object({
+			title: z.string(),
+			/** One line, used on cards and as the section standfirst. */
+			summary: z.string(),
+			/**
+			 * Emoji carried over from the Notion database. Projects with real
+			 * artwork use `logo` instead; a few have neither.
+			 */
+			icon: z.string().optional(),
+			/** Project logo or key art, where one exists. */
+			logo: image().optional(),
+			...dateRange,
+			/** Technologies. Also the source for the stack filter's options. */
+			stacks: z.array(z.string()).min(1),
+			scale: z.enum(['Small', 'Medium', 'Big']),
+			/** Surfaced in "Selected work" on the home page. */
+			featured: z.boolean().default(false),
+			/**
+			 * Outbound links, labelled because most projects have several of a
+			 * different kind — demo, deck, source, showcase. 10 of the 15 Notion
+			 * pages carry two or more, so a single `productLink` would lose them.
+			 */
+			links: z
+				.array(
+					z.object({
+						label: z.string(),
+						url: z.url(),
+					}),
+				)
+				.default([]),
+			lang,
+		}),
 });
 
 const experience = defineCollection({
