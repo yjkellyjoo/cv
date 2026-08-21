@@ -29,3 +29,17 @@ Swarm hosting constrains the build in two ways — see the README for the full r
 
 - Keep `trailingSlash: 'always'` and `build.format: 'directory'` in `astro.config.mjs`. Every route must build as `<route>/index.html`.
 - Keep the payload small. No web fonts, no client-side framework; every byte becomes a paid-for Swarm chunk.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in this repo's GitHub Issues (`yjkellyjoo/cv`), via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles, each label string equal to its name. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
