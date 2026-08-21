@@ -16,7 +16,12 @@ npm run dev      # dev server on localhost:4321
 npm run build    # static build to ./dist
 npm run preview  # serve ./dist locally
 npm run check    # type-check
+npm run verify   # build, then assert the Swarm invariants hold
 ```
+
+`verify` exists because `astro build` exits 0 on two failures that matter here: a dangling
+content `reference()` only logs an error, and a route built as `<route>.html` instead of
+`<route>/index.html` works on Cloudflare Pages while 404-ing on Swarm.
 
 ## Deploying
 
