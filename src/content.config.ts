@@ -94,7 +94,7 @@ const experience = defineCollection({
 		orgUrl: z.url().optional(),
 		...dateRange,
 		/** One or two lines describing the employer or product context. */
-		blurb: z.string(),
+		blurb: z.string().min(1),
 		stacks: z.array(z.string()).default([]),
 		lang,
 	}),
