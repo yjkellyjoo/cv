@@ -37,9 +37,11 @@ const dateRange = {
 
 const projects = defineCollection({
 	loader: markdownIn('projects'),
-	// Function form so the schema can use `image()`, which validates the file
-	// exists at build time and hands the page an optimizable ImageMetadata
-	// rather than a string that can rot.
+	// Function form so the schema can use `image()`, which hands the page an
+	// optimizable ImageMetadata rather than a string that can rot. It only
+	// checks the file actually exists once something consumes that field —
+	// see scripts/verify-build.mjs for why nothing does yet, and how the gap
+	// is covered meanwhile.
 	schema: ({ image }) =>
 		z
 			.object({

@@ -12,19 +12,25 @@
  *    find late. Astro's root `404.html` is the one legitimate exception, and is
  *    what the manifest's error-document points at.
  * 3. `src/content/**\/*.md` is full of `../`-prefixed paths into `src/assets`,
- *    and none of them are checked today. A collection's schema only runs when
- *    something calls `getCollection()` on it, and nothing does yet —
- *    `src/pages/index.astro` is the only route in the project, and it reads
- *    from `src/data`, not from a content collection. So a typo'd frontmatter
- *    `logo:` builds clean right now even though its schema uses `image()`,
- *    which would normally resolve the file at build time and fail loudly if
- *    it were missing. A Markdown body image is never covered by `image()` at
- *    all, in any state of the project — schemas validate frontmatter, not
- *    prose — so it stays unchecked even once a page starts rendering that
- *    collection. This check resolves every `../`-prefixed reference in every
- *    content file, frontmatter and body alike, against the file it appears
- *    in, so both kinds of typo are caught regardless of whether or when a
- *    page renders them.
+ *    and none of them are checked today. A collection's schema itself runs at
+ *    sync/build time regardless of whether anything calls `getCollection()` —
+ *    a type error or the icon/logo `superRefine` fails the build either way.
+ *    `image()` is narrower: it records a frontmatter `logo:` path when it
+ *    parses the entry, but only resolves it — checks the file actually
+ *    exists — once something reads that field. `src/pages/index.astro` is the
+ *    only route in the project, and it reads from `src/data`, not from a
+ *    content collection, so nothing reads it yet and a typo'd `logo:` builds
+ *    clean today. A Markdown body image is unchecked for a different reason:
+ *    schemas validate frontmatter, not prose, so `image()` never covers it at
+ *    all. Both gaps close on their own once a page renders the collection —
+ *    Astro fails the build with `[ImageNotFound]` on a missing frontmatter
+ *    `logo:` just as it does on a missing body image — but this check keeps
+ *    earning its place for body images even then, because it reports every
+ *    broken reference across every content file in one pass, where a
+ *    renderer stops at the first one it happens to touch. This check resolves
+ *    every `../`-prefixed reference in every content file, frontmatter and
+ *    body alike, against the file it appears in, so both kinds of typo are
+ *    caught regardless of whether or when a page renders them.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
