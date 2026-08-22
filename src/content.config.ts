@@ -56,8 +56,18 @@ const projects = defineCollection({
 				/** Project logo or key art, where one exists. */
 				logo: image().optional(),
 				...dateRange,
-				/** Technologies. Also the source for the stack filter's options. */
-				stacks: z.array(z.string()).min(1),
+				/**
+				 * Named tools, languages, frameworks, and protocols — the stack
+				 * filter's data source. An empty array means the source named no
+				 * technology at all, not that nobody filled it in.
+				 */
+				stacks: z.array(z.string()),
+				/**
+				 * Domains, techniques, platforms, and formats — everything the
+				 * export tagged that isn't a named technology. Displayed on the
+				 * project, not filtered; see issue #10 for why the two split.
+				 */
+				topics: z.array(z.string()).default([]),
 				scale: z.enum(['Small', 'Medium', 'Big']),
 				/** Surfaced in "Selected work" on the home page. */
 				featured: z.boolean().default(false),
@@ -83,6 +93,12 @@ const projects = defineCollection({
 					ctx.addIssue({
 						code: 'custom',
 						message: `"${project.title}" must set exactly one of icon or logo, not ${hasIcon ? 'both' : 'neither'}`,
+					});
+				}
+				if (project.stacks.length === 0 && project.topics.length === 0) {
+					ctx.addIssue({
+						code: 'custom',
+						message: `"${project.title}" has no stacks and no topics — add at least one value to whichever field the source actually names`,
 					});
 				}
 			}),
