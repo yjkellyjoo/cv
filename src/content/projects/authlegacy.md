@@ -4,7 +4,8 @@ summary: Blockchain-backed record of a physical object's history, authenticity a
 logo: ../../assets/icons/authlegacy.svg
 dateStart: 2024-11-15
 dateEnd: 2024-11-17
-stacks: [Blockchain, Git, NFT, TypeScript, Web3]
+stacks: [Git, TypeScript]
+topics: [Blockchain, NFT, Web3]
 scale: Small
 links:
   - label: Showcase
