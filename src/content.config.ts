@@ -130,8 +130,18 @@ const publications = defineCollection({
 		date: z.coerce.date(),
 		/** e.g. "1st Author". */
 		authorship: z.string(),
-		/** Site-relative path (e.g. /thesis/prosmart.pdf), so not a full URL. */
-		pdfUrl: z.string().optional(),
+		/**
+		 * Either a site-relative path (e.g. /thesis/prosmart.pdf) or an absolute
+		 * http(s) URL — prosmart.md serves its own PDF, dcoss-2020.md links to one
+		 * hosted by the venue.
+		 */
+		pdfUrl: z
+			.string()
+			.optional()
+			.refine(
+				(value) => value === undefined || /^\//.test(value) || /^https?:\/\//.test(value),
+				{ message: 'pdfUrl must start with "/" (site-relative) or be an absolute http(s):// URL' },
+			),
 		demoUrl: z.url().optional(),
 		project: reference('projects').optional(),
 		lang,
