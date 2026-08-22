@@ -3,7 +3,6 @@ title: 'OpenRun: M2E NFT earning social running application'
 summary: Move-to-earn running app on the XRP Ledger, built by a team of nine.
 logo: ../../assets/icons/openrun.png
 dateStart: 2023-12-04
-dateEnd: 2023-12-04
 stacks: [API, Blockchain, Java, NFT]
 scale: Big
 featured: true
