@@ -96,7 +96,7 @@ const experience = defineCollection({
 		orgUrl: z.url().optional(),
 		...dateRange,
 		/** One or two lines describing the employer or product context. */
-		blurb: z.string().min(1),
+		blurb: z.string().trim().min(1),
 		stacks: z.array(z.string()).default([]),
 		lang,
 	}),
@@ -145,15 +145,21 @@ const publications = defineCollection({
 		authorship: z.string(),
 		/**
 		 * Either a site-relative path (e.g. /thesis/prosmart.pdf) or an absolute
-		 * http(s) URL — prosmart.md serves its own PDF, dcoss-2020.md links to one
-		 * hosted by the venue.
+		 * https URL — prosmart.md serves its own PDF, dcoss-2020.md links to one
+		 * hosted by the venue. A single leading slash not followed by another is
+		 * required for the relative form, so a scheme-relative URL like
+		 * "//evil.example.com/x.pdf" — which a browser resolves off-origin —
+		 * doesn't sneak through as "site-relative".
 		 */
 		pdfUrl: z
 			.string()
 			.optional()
 			.refine(
-				(value) => value === undefined || /^\//.test(value) || /^https?:\/\//.test(value),
-				{ message: 'pdfUrl must start with "/" (site-relative) or be an absolute http(s):// URL' },
+				(value) =>
+					value === undefined ||
+					/^\/(?!\/)/.test(value) ||
+					z.url({ protocol: /^https$/i }).safeParse(value).success,
+				{ message: 'pdfUrl must start with "/" but not "//" (site-relative), or be an absolute https:// URL' },
 			),
 		demoUrl: z.url().optional(),
 		project: reference('projects').optional(),
