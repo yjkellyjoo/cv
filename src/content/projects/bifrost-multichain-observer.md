@@ -4,7 +4,8 @@ summary: Watches bridge contract events and Bitcoin UTXOs across 7+ chains, and 
 icon: 🔗
 dateStart: 2022-05-30
 dateEnd: 2025-04-30
-stacks: [API, Blockchain, DB, FastAPI, MySQL (MariaDB), Python, Web3, uvicorn]
+stacks: [FastAPI, MySQL (MariaDB), Python, uvicorn]
+topics: [API, Blockchain, DB, Web3]
 scale: Big
 featured: true
 links:

@@ -4,7 +4,8 @@ summary: Validating IoT devices before their data reaches an IoT marketplace, wi
 icon: 💱
 dateStart: 2020-02-03
 dateEnd: 2020-05-29
-stacks: [Marketplace, Smart City, Vulnerability]
+stacks: [hmark]
+topics: [Marketplace, Smart City, Vulnerability]
 scale: Medium
 links:
   - label: Paper (DCOSS 2020)

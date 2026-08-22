@@ -4,7 +4,8 @@ summary: Spring Boot job that keeps a local mirror of the U.S. National Vulnerab
 icon: 📋
 dateStart: 2018-11-01
 dateEnd: 2019-08-23
-stacks: [CVE, MyBatis, MySQL (MariaDB), Spring]
+stacks: [MyBatis, MySQL (MariaDB), Spring]
+topics: [CVE]
 scale: Big
 links:
   - label: Labrador

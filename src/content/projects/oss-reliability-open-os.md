@@ -4,7 +4,8 @@ summary: A reliability metric for OSS packages, applied to Gooroom OS and its su
 icon: 🗃️
 dateStart: 2021-04-01
 dateEnd: 2021-10-31
-stacks: [Assessment, Open Source, Reliability]
+stacks: [Gooroom OS]
+topics: [Assessment, Open Source, Reliability]
 scale: Small
 links:
   - label: Gooroom OS
