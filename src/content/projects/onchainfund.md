@@ -4,7 +4,8 @@ summary: Milestone-gated crowdfunding on Base, where backers vote to release eac
 logo: ../../assets/icons/onchainfund.jpg
 dateStart: 2025-05-01
 dateEnd: 2025-05-17
-stacks: [Blockchain, Solidity, TypeScript, Web3, stablecoin]
+stacks: [Solidity, TypeScript]
+topics: [Blockchain, Web3, stablecoin]
 scale: Medium
 featured: true
 links:

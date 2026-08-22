@@ -4,7 +4,8 @@ summary: A transcription tool built for one counsellor who was spending longer w
 icon: 🗣️
 dateStart: 2019-11-01
 dateEnd: 2020-01-31
-stacks: [GCP, Python, STT]
+stacks: [GCP, Python]
+topics: [STT]
 scale: Small
 links:
   - label: Source code
