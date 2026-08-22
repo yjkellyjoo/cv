@@ -27,4 +27,4 @@ Detecting far more often than airdropping is what makes the batching work: one t
 
 ## Outcome
 
-It was still running without error when I left in April 2025, delivering 2 free BFC to every new user.
+The job was still running without error when I left in April 2025, delivering 2 free BFC to every new user.
