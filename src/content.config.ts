@@ -41,38 +41,49 @@ const projects = defineCollection({
 	// exists at build time and hands the page an optimizable ImageMetadata
 	// rather than a string that can rot.
 	schema: ({ image }) =>
-		z.object({
-			title: z.string(),
-			/** One line, used on cards and as the section standfirst. */
-			summary: z.string(),
-			/**
-			 * Emoji carried over from the Notion database. Projects with real
-			 * artwork set `logo` instead — every project has exactly one of the two.
-			 */
-			icon: z.string().optional(),
-			/** Project logo or key art, where one exists. */
-			logo: image().optional(),
-			...dateRange,
-			/** Technologies. Also the source for the stack filter's options. */
-			stacks: z.array(z.string()).min(1),
-			scale: z.enum(['Small', 'Medium', 'Big']),
-			/** Surfaced in "Selected work" on the home page. */
-			featured: z.boolean().default(false),
-			/**
-			 * Outbound links, labelled because most projects have several of a
-			 * different kind — demo, deck, source, showcase. 10 of the 15 Notion
-			 * pages carry two or more, so a single `productLink` would lose them.
-			 */
-			links: z
-				.array(
-					z.object({
-						label: z.string(),
-						url: z.url(),
-					}),
-				)
-				.default([]),
-			lang,
-		}),
+		z
+			.object({
+				title: z.string(),
+				/** One line, used on cards and as the section standfirst. */
+				summary: z.string(),
+				/**
+				 * Emoji carried over from the Notion database. Projects with real
+				 * artwork set `logo` instead — every project has exactly one of the two.
+				 */
+				icon: z.string().optional(),
+				/** Project logo or key art, where one exists. */
+				logo: image().optional(),
+				...dateRange,
+				/** Technologies. Also the source for the stack filter's options. */
+				stacks: z.array(z.string()).min(1),
+				scale: z.enum(['Small', 'Medium', 'Big']),
+				/** Surfaced in "Selected work" on the home page. */
+				featured: z.boolean().default(false),
+				/**
+				 * Outbound links, labelled because most projects have several of a
+				 * different kind — demo, deck, source, showcase. 10 of the 15 Notion
+				 * pages carry two or more, so a single `productLink` would lose them.
+				 */
+				links: z
+					.array(
+						z.object({
+							label: z.string(),
+							url: z.url(),
+						}),
+					)
+					.default([]),
+				lang,
+			})
+			.superRefine((project, ctx) => {
+				const hasIcon = Boolean(project.icon);
+				const hasLogo = Boolean(project.logo);
+				if (hasIcon === hasLogo) {
+					ctx.addIssue({
+						code: 'custom',
+						message: `"${project.title}" must set exactly one of icon or logo, not ${hasIcon ? 'both' : 'neither'}`,
+					});
+				}
+			}),
 });
 
 const experience = defineCollection({
