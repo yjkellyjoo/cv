@@ -58,10 +58,10 @@ const projects = defineCollection({
 				...dateRange,
 				/**
 				 * Named tools, languages, frameworks, and protocols — the stack
-				 * filter's data source. An empty array means the source named no
-				 * technology at all, not that nobody filled it in.
+				 * filter's data source. Assessment work, which names no tool, carries
+				 * its method here instead, so every project has at least one.
 				 */
-				stacks: z.array(z.string()),
+				stacks: z.array(z.string()).min(1),
 				/**
 				 * Domains, techniques, platforms, and formats — everything the
 				 * export tagged that isn't a named technology. Displayed on the
@@ -93,12 +93,6 @@ const projects = defineCollection({
 					ctx.addIssue({
 						code: 'custom',
 						message: `"${project.title}" must set exactly one of icon or logo, not ${hasIcon ? 'both' : 'neither'}`,
-					});
-				}
-				if (project.stacks.length === 0 && project.topics.length === 0) {
-					ctx.addIssue({
-						code: 'custom',
-						message: `"${project.title}" has no stacks and no topics — add at least one value to whichever field the source actually names`,
 					});
 				}
 			}),
