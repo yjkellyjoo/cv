@@ -14,6 +14,11 @@ export interface SpokenLanguage {
 	proficiency: 'native' | 'professional' | 'conversational';
 }
 
+export interface ToolGroup {
+	group: string;
+	items: string[];
+}
+
 export interface Social {
 	label: string;
 	handle: string;
@@ -51,7 +56,42 @@ export const profile = {
 		programming: ['Python', 'Kotlin', 'Java', 'TypeScript'],
 	},
 
+	/** The headline five, for the hero. The full breakdown is `toolchain`. */
 	skills: ['Web3', 'Spring Framework', 'FastAPI', 'MySQL', 'MongoDB'],
+
+	/**
+	 * Grouped tooling, ported from the export's "Tools & Skills" section. Kept
+	 * here rather than derived from the `projects` collection, because plenty of
+	 * it (AWS, JIRA, Confluence, OAS3) never appears as a project tag.
+	 */
+	toolchain: [
+		{
+			group: 'Backend',
+			items: ['Spring Cloud Gateway', 'Spring Boot', 'flask-RESTX', 'FastAPI', 'uvicorn', 'AWS', 'GCP', 'OAS3'],
+		},
+		{
+			group: 'Database',
+			items: ['MySQL', 'MariaDB', 'PyMySQL', 'SQLAlchemy', 'MyBatis', 'MongoDB'],
+		},
+		{
+			group: 'Blockchain',
+			items: ['web3.py', 'JSON-RPC API interaction'],
+		},
+		{
+			group: 'Security',
+			items: ['White-box testing', 'Vulnerable code clone detection', 'Smart contract vulnerability'],
+		},
+		{
+			group: 'Other',
+			items: ['Linux (Ubuntu)', 'Git / GitHub', 'Confluence', 'JIRA', 'Sentry', 'ReadMe'],
+		},
+	] satisfies ToolGroup[],
+
+	/** Tools whose own site is worth linking, where the export linked them. */
+	toolLinks: {
+		Sentry: 'https://sentry.io/welcome/',
+		ReadMe: 'https://readme.com/',
+	} as Record<string, string>,
 
 	socials: [
 		{ label: 'GitHub', handle: 'yjkellyjoo', url: 'https://github.com/yjkellyjoo' },
