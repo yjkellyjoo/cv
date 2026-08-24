@@ -51,6 +51,44 @@ const CONTENT_DIR = 'src/content';
 const RELATIVE_REFERENCE_PATTERN = /\.\.\/[^\s)"'\]]+/g;
 
 /**
+ * Not every `../` string in a content file is an asset reference. A link to a
+ * sibling page — `[NVD crawler](../nvd-crawling-scheduler/)` — is the shape
+ * that matters, because it is the natural way to cross-link once pages exist,
+ * and resolving it against `src/assets` would fail the build over content that
+ * is perfectly correct.
+ *
+ * The rule: a reference is worth checking if it ends at a file extension, or if
+ * it points into an `assets/` directory. Both of this project's real shapes
+ * satisfy it — a Markdown body image and a frontmatter `logo:` — and a page
+ * link satisfies neither.
+ *
+ * This deliberately gives up one case: an extensionless reference outside an
+ * `assets/` directory is skipped rather than checked. Nothing in the collection
+ * is shaped that way, because every asset lives under `src/assets/`.
+ */
+const ASSET_EXTENSION_PATTERN = /\.[A-Za-z0-9]+$/;
+const ASSET_PATH_SEGMENT_PATTERN = /(?:^|\/)assets\//;
+
+function looksLikeAssetReference(reference) {
+	return ASSET_EXTENSION_PATTERN.test(reference) || ASSET_PATH_SEGMENT_PATTERN.test(reference);
+}
+
+/**
+ * Markdown decodes a percent-encoded destination before resolving it, so
+ * `open%20run.png` names the file `open run.png`. The Notion export this
+ * content was ported from writes its paths that way, so a later port can carry
+ * one in. An invalid encoding is left as-is rather than throwing: the reference
+ * then fails to resolve and gets reported, which is the honest outcome.
+ */
+function decodeReference(reference) {
+	try {
+		return decodeURIComponent(reference);
+	} catch {
+		return reference;
+	}
+}
+
+/**
  * Astro logs these at error level but still exits 0. `[ERROR]` alone covers the
  * dangling-reference case, since the logger prefixes it on the same line — the
  * pattern is kept broad deliberately, to catch siblings we have not hit yet.
@@ -127,7 +165,9 @@ function markdownFiles(dir) {
 		const references = text.match(RELATIVE_REFERENCE_PATTERN) ?? [];
 
 		for (const reference of references) {
-			const resolved = join(dirname(file), reference);
+			if (!looksLikeAssetReference(reference)) continue;
+
+			const resolved = join(dirname(file), decodeReference(reference));
 			if (!existsSync(resolved)) {
 				brokenReferences.push(`${file}: ${reference}`);
 			}
