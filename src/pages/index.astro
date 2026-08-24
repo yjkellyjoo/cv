@@ -1,24 +1,156 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
+import { Image } from 'astro:assets';
+
+import LinkList from '../components/LinkList.astro';
+import Section from '../components/Section.astro';
 import { profile } from '../data/profile';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import profilePhoto from '../assets/profile.jpg';
+
+// profile.summary is the whole lede, two paragraphs. The hero gets only the
+// first — already about two lines at the hero's measure — and About gets
+// whatever is left, so the same prose never appears twice on the page.
+const [heroLede, ...aboutParagraphs] = profile.summary;
+
+// Two label shapes from the same `profile.socials`: terse in the hero
+// (LinkList only ever needs {label, url}), fuller down in Contact.
+const heroSocials = profile.socials.map(({ label, url }) => ({ label, url }));
+const contactSocials = profile.socials.map(({ label, handle, url }) => ({
+	label: `${label} — ${handle}`,
+	url,
+}));
 ---
 
 <BaseLayout>
-	<div class="wrapper">
-		<h1>{profile.name}</h1>
-		<p class="lede">{profile.title}</p>
-		{profile.summary.map((paragraph) => <p>{paragraph}</p>)}
+	<div class="wrapper hero">
+		<Image
+			class="hero__photo"
+			src={profilePhoto}
+			alt={`Portrait of ${profile.name}`}
+			width={192}
+			height={256}
+			format="webp"
+			loading="eager"
+		/>
+
+		<div class="hero__intro">
+			<h1>{profile.name}</h1>
+			<p class="hero__tagline">{profile.title}</p>
+			<p class="hero__lede">{heroLede}</p>
+
+			<div class="hero__contact">
+				<a href={`mailto:${profile.email}`}>{profile.email}</a>
+				<LinkList links={heroSocials} />
+			</div>
+		</div>
 	</div>
 
-	<style>
-		.lede {
-			color: var(--text-muted);
-			font-size: var(--step-1);
-			margin-block: var(--space-2xs) var(--space-m);
-		}
+	<Section title="About">
+		{aboutParagraphs.map((paragraph) => (
+			<p>{paragraph}</p>
+		))}
+	</Section>
 
-		p + p {
-			margin-block-start: var(--space-s);
-		}
-	</style>
+	<Section title="Contact">
+		<dl class="contact-list">
+			<div class="contact-list__row">
+				<dt>Email</dt>
+				<dd><a href={`mailto:${profile.email}`}>{profile.email}</a></dd>
+			</div>
+
+			<div class="contact-list__row">
+				<dt>Location</dt>
+				<dd>{profile.location}</dd>
+			</div>
+
+			<div class="contact-list__row">
+				<dt>Languages</dt>
+				<dd>
+					<ul class="language-list">
+						{profile.languages.spoken.map((language) => (
+							<li>
+								<span aria-hidden="true">{language.flag}</span> {language.name} <span class="language-list__proficiency">({language.proficiency})</span>
+							</li>
+						))}
+					</ul>
+				</dd>
+			</div>
+
+			<div class="contact-list__row">
+				<dt>Elsewhere</dt>
+				<dd><LinkList links={contactSocials} /></dd>
+			</div>
+		</dl>
+	</Section>
 </BaseLayout>
+
+<style>
+	.hero {
+		align-items: flex-start;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-l);
+		padding-block: var(--space-l) var(--space-2xl);
+	}
+
+	.hero__photo {
+		border-radius: var(--radius-m);
+		flex-shrink: 0;
+		inline-size: clamp(7.5rem, 20vw, 10rem);
+	}
+
+	.hero__intro {
+		min-inline-size: 0;
+	}
+
+	.hero__tagline {
+		color: var(--text-muted);
+		font-size: var(--step-1);
+		margin-block: var(--space-2xs) var(--space-m);
+	}
+
+	.hero__lede {
+		margin-block-end: var(--space-m);
+	}
+
+	.hero__contact {
+		align-items: center;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-m);
+	}
+
+	.contact-list {
+		display: grid;
+		gap: var(--space-m);
+	}
+
+	.contact-list__row {
+		display: grid;
+		gap: var(--space-3xs);
+	}
+
+	.contact-list dt {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+		letter-spacing: var(--tracking-wide);
+		text-transform: uppercase;
+	}
+
+	.contact-list dd {
+		margin-inline-start: 0;
+	}
+
+	.language-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-xs) var(--space-m);
+		list-style: none;
+		max-inline-size: none;
+		padding: 0;
+	}
+
+	.language-list__proficiency {
+		color: var(--text-faint);
+	}
+</style>
