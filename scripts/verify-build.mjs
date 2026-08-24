@@ -28,12 +28,36 @@
  *    earning its place for body images even then, because it reports every
  *    broken reference across every content file in one pass, where a
  *    renderer stops at the first one it happens to touch. This check resolves
- *    every `../`-prefixed reference in every content file, frontmatter and
- *    body alike, against the file it appears in, so both kinds of typo are
- *    caught regardless of whether or when a page renders them.
+ *    the `../`-prefixed references that look like assets — see
+ *    `looksLikeAssetReference` for where that line falls and what it gives up —
+ *    in every content file, frontmatter and body alike, against the file each
+ *    one appears in, so both kinds of typo are caught regardless of whether or
+ *    when a page renders them.
+ *
+ *    Three things it gives up, all stated here so none is rediscovered as a
+ *    surprise:
+ *
+ *    It does not parse Markdown. A `../` path inside a code fence gets no
+ *    special treatment, so one that also looks like an asset — `node
+ *    ../scripts/build.mjs` does, `cd ../scripts` does not — would fail the
+ *    build even though it is a code sample. No content file contains a fence
+ *    today; if one ever does, teach this the difference then, with a test to
+ *    hold it. An earlier attempt at that parsing was three times this file's
+ *    size and silently stopped checking on input it mishandled, which is far
+ *    worse than a loud false failure.
+ *
+ *    It only sees `../`-prefixed references. A `./`-relative, bare, or
+ *    site-relative one is not checked at all — `pdfUrl: /thesis/prosmart.pdf`
+ *    in the publications collection is a live reference with no coverage here,
+ *    so renaming `public/thesis/prosmart.pdf` leaves this green while the link
+ *    404s.
+ *
+ *    It tests the shape before decoding, so `../foo%2Epng` is skipped even
+ *    though it decodes to a `.png`. The export encodes spaces, not extension
+ *    dots, so this has never come up.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 
 const DIST = 'dist';
@@ -49,6 +73,95 @@ const CONTENT_DIR = 'src/content';
  * it is looking at.
  */
 const RELATIVE_REFERENCE_PATTERN = /\.\.\/[^\s)"'\]]+/g;
+
+/**
+ * Not every `../` string in a content file is an asset reference. A link to a
+ * sibling page — `[NVD crawler](../nvd-crawling-scheduler/)` — is the shape
+ * that matters, because it is the natural way to cross-link once pages exist,
+ * and resolving it against `src/assets` would fail the build over content that
+ * is perfectly correct.
+ *
+ * The rule: a reference is worth checking if it ends at a file extension, or if
+ * it points into an `assets/` directory. Both of this project's real shapes
+ * satisfy it — a Markdown body image and a frontmatter `logo:` — and a page
+ * link satisfies neither.
+ *
+ * This deliberately gives up one case: an extensionless reference outside an
+ * `assets/` directory is skipped rather than checked. Nothing in the collection
+ * is shaped that way, because every asset lives under `src/assets/`.
+ */
+const ASSET_EXTENSION_PATTERN = /\.[A-Za-z0-9]+$/;
+const ASSET_PATH_SEGMENT_PATTERN = /(?:^|\/)assets\//;
+
+function looksLikeAssetReference(reference) {
+	return ASSET_EXTENSION_PATTERN.test(reference) || ASSET_PATH_SEGMENT_PATTERN.test(reference);
+}
+
+/**
+ * Markdown decodes a percent-encoded destination before resolving it, so
+ * `open%20run.png` names the file `open run.png`. The Notion export this
+ * content was ported from writes its paths that way, so a later port can carry
+ * one in. An invalid encoding is left as-is rather than throwing: the reference
+ * then fails to resolve and gets reported, which is the honest outcome.
+ */
+function decodeReference(reference) {
+	try {
+		return decodeURIComponent(reference);
+	} catch {
+		return reference;
+	}
+}
+
+/**
+ * Resolves a path the way the deploy host will, which `existsSync` does not.
+ *
+ * Two ways it differs. macOS is case-insensitive, so `existsSync` accepts
+ * `OPENRUN.PNG` for a file named `openrun.png` — and both deploy targets are
+ * Linux, where that reference 404s. Walking each segment against its parent's
+ * actual listing makes the comparison case-exact on every platform, so a green
+ * run locally means what it says.
+ *
+ * And `existsSync` accepts a directory. A reference naming one — whether it
+ * ends in a slash or not — is broken for an image, so the final segment has to
+ * be a file.
+ *
+ * The walk is what rejects a path naming a directory or climbing out of the
+ * repository: `readdirSync` never lists `.`, `..`, or an empty name, so those
+ * segments fail the membership test like any other name that isn't there. The
+ * guard below states those two boundaries explicitly rather than leaving them
+ * as a consequence of the loop, and stays correct if the loop changes shape.
+ */
+function resolvesToFile(path) {
+	if (path.endsWith('/') || path.startsWith('../')) return false;
+
+	const segments = path.split('/');
+	let current = '';
+
+	for (const [index, segment] of segments.entries()) {
+		let entries;
+		try {
+			entries = readdirSync(current || '.');
+		} catch {
+			return false;
+		}
+
+		if (!entries.includes(segment)) return false;
+		current = join(current, segment);
+
+		if (index === segments.length - 1) {
+			try {
+				return statSync(current).isFile();
+			} catch {
+				// A name present in its parent's listing that cannot be stat'd is a
+				// broken symlink. Report it as unresolved rather than letting the
+				// throw abort the scan and leave later files unchecked.
+				return false;
+			}
+		}
+	}
+
+	return false;
+}
 
 /**
  * Astro logs these at error level but still exits 0. `[ERROR]` alone covers the
@@ -127,8 +240,10 @@ function markdownFiles(dir) {
 		const references = text.match(RELATIVE_REFERENCE_PATTERN) ?? [];
 
 		for (const reference of references) {
-			const resolved = join(dirname(file), reference);
-			if (!existsSync(resolved)) {
+			if (!looksLikeAssetReference(reference)) continue;
+
+			const resolved = join(dirname(file), decodeReference(reference));
+			if (!resolvesToFile(resolved)) {
 				brokenReferences.push(`${file}: ${reference}`);
 			}
 		}
@@ -147,5 +262,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-	'\n✓ verify-build: no silent errors, every route is a directory index, every content reference resolves\n',
+	'\n✓ verify-build: no silent errors, every route is a directory index, every ../ asset reference resolves\n',
 );
