@@ -4,7 +4,8 @@ summary: Kotlin API gateway giving external clients one entry point into Bifrost
 logo: ../../assets/icons/bifrost.webp
 dateStart: 2023-07-03
 dateEnd: 2025-04-30
-stacks: [API, Blockchain, Gateway, Kotlin, OAuth2, Spring]
+stacks: [Kotlin, OAuth2, Spring]
+topics: [API, Blockchain, Gateway]
 scale: Big
 featured: true
 links:

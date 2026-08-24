@@ -4,7 +4,8 @@ summary: Portable pet identity that survives crossing a border, using FHE for pr
 logo: ../../assets/icons/pet-id.jpg
 dateStart: 2024-07-12
 dateEnd: 2024-07-14
-stacks: [Blockchain, NFC, Privacy, TypeScript]
+stacks: [TypeScript]
+topics: [Blockchain, NFC, Privacy]
 scale: Small
 featured: true
 links:
@@ -35,4 +36,5 @@ Orchestrated the team spirit and designed the overall blockchain-based identity 
   - **Private data on-chain, still private** — Fhenix's FHE-enabled chain for encryption.
   - **Photos** — Filecoin/IPFS, since images don't belong in contract storage.
   - **Public per-pet identity** — NFTs on Base, for speed, low gas, and OpenSea compatibility.
+  - **The physical link** — an NFC tag on the animal, carrying the NFT's metadata.
 - Configured the Fhenix chain in Dynamic wallet.

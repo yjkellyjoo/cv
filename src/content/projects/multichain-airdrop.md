@@ -4,7 +4,8 @@ summary: Multithreaded Python engine that batches native-coin airdrops to new Bi
 icon: 🪂
 dateStart: 2023-02-06
 dateEnd: 2023-03-31
-stacks: [Blockchain, JSON-RPC API, Python, Web3]
+stacks: [JSON-RPC API, Python]
+topics: [Blockchain, Web3]
 scale: Medium
 links:
   - label: Bifrost Bridge
@@ -27,4 +28,4 @@ Detecting far more often than airdropping is what makes the batching work: one t
 
 ## Outcome
 
-The job still runs without error, delivering 2 free BFC to every new user.
+Ran without error in production, delivering 2 free BFC to every new user.
