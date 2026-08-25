@@ -1,0 +1,55 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// Astro emits this at the root as `404.html` rather than as `404/index.html`,
+// which is deliberate and is the one exception `scripts/verify-build.mjs`
+// allows to the every-route-is-a-directory rule. It is also the file the Swarm
+// manifest's error-document points at on upload, so the mirror serves this
+// page for a bad path rather than whatever the gateway would show.
+---
+
+<BaseLayout title="Page not found" description="That page does not exist.">
+	<div class="wrapper not-found">
+		<p class="not-found__code">404</p>
+		<h1>That page does not exist.</h1>
+		<p class="not-found__lede">
+			The link may be out of date, or the page may have moved when this site replaced its Notion
+			original.
+		</p>
+
+		<ul class="not-found__links">
+			<li><a href="/">Back to the CV</a></li>
+			<li><a href="/projects/">All projects</a></li>
+		</ul>
+	</div>
+</BaseLayout>
+
+<style>
+	.not-found {
+		padding-block: var(--space-3xl);
+	}
+
+	.not-found__code {
+		color: var(--text-faint);
+		font-family: var(--font-mono);
+		font-size: var(--step-1);
+		letter-spacing: var(--tracking-wide);
+		margin-block-end: var(--space-xs);
+	}
+
+	.not-found__lede {
+		color: var(--text-muted);
+		font-size: var(--step-1);
+		margin-block-start: var(--space-s);
+	}
+
+	.not-found__links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-s) var(--space-l);
+		list-style: none;
+		margin-block-start: var(--space-l);
+		max-inline-size: none;
+		padding: 0;
+	}
+</style>

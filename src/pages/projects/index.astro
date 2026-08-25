@@ -20,6 +20,47 @@ const projects = await Promise.all(
 			return { entry, Content };
 		}),
 );
+
+/**
+ * The filter matches on a delimited attribute rather than on pill text, so it
+ * keeps working if a pill is ever restyled, truncated or reordered.
+ *
+ * `|` is the delimiter because no stack value contains one — asserted rather
+ * than assumed, since a value that did would silently split into two options
+ * that match nothing, and a filter that quietly stops matching looks exactly
+ * like a filter with no results.
+ */
+const STACK_DELIMITER = '|';
+
+for (const { entry } of projects) {
+	for (const stack of entry.data.stacks) {
+		if (stack.includes(STACK_DELIMITER)) {
+			throw new Error(
+				`projects/index.astro: stack "${stack}" on "${entry.id}" contains ${STACK_DELIMITER}, which the filter uses as its delimiter`,
+			);
+		}
+	}
+}
+
+/**
+ * Options come from the union of every project's `stacks`, ordered by how many
+ * projects carry each so the useful filters sit at the top, then alphabetically.
+ * Thirteen of the nineteen values appear on exactly one project, which is why
+ * this is a select rather than a row of pills: as pills, two thirds of the row
+ * would be single-project options, and the control would be longer than some of
+ * the sections it filters. The count rides along in each label so a reader can
+ * see what a choice is worth before making it.
+ */
+const stackCounts = new Map<string, number>();
+for (const { entry } of projects) {
+	for (const stack of entry.data.stacks) {
+		stackCounts.set(stack, (stackCounts.get(stack) ?? 0) + 1);
+	}
+}
+
+const stackOptions = [...stackCounts.entries()].sort(
+	([aLabel, aCount], [bLabel, bCount]) => bCount - aCount || aLabel.localeCompare(bLabel),
+);
 ---
 
 <BaseLayout
@@ -38,6 +79,27 @@ const projects = await Promise.all(
 			</p>
 
 			{/*
+				`hidden` until the script removes it: with JavaScript off the control
+				would do nothing, and showing a reader a dead select is worse than
+				showing them none. Every section is rendered server-side either way,
+				so the page is complete without this.
+			*/}
+			<div class="projects-filter" id="stack-filter" hidden>
+				<label class="projects-filter__label" for="stack-select">Filter by stack</label>
+				<select class="projects-filter__select" id="stack-select">
+					<option value="">All stacks ({projects.length} projects)</option>
+					{
+						stackOptions.map(([label, count]) => (
+							<option value={label}>
+								{label} ({count})
+							</option>
+						))
+					}
+				</select>
+				<p class="projects-filter__status" role="status" aria-live="polite"></p>
+			</div>
+
+			{/*
 				Fifteen sections is a lot of scrolling, so the page opens with its own
 				contents. Plain anchor links, no script: it costs nothing, works with
 				JavaScript disabled, and doubles as an at-a-glance list of everything
@@ -47,7 +109,7 @@ const projects = await Promise.all(
 				<ol class="projects-toc__list">
 					{
 						projects.map(({ entry }) => (
-							<li>
+							<li data-stacks={entry.data.stacks.join(STACK_DELIMITER)}>
 								<a href={`#${entry.id}`}>{entry.data.title}</a>
 							</li>
 						))
@@ -61,7 +123,11 @@ const projects = await Promise.all(
 				const { title, summary, icon, logo, dateStart, dateEnd, stacks, topics, links } =
 					entry.data;
 				return (
-					<article class="project" id={entry.id}>
+					<article
+						class="project"
+						id={entry.id}
+						data-stacks={stacks.join(STACK_DELIMITER)}
+					>
 						<header class="project__header">
 							<div class="project__visual" aria-hidden="true">
 								{logo ? (
@@ -269,9 +335,77 @@ const projects = await Promise.all(
 		padding-inline-start: var(--space-s);
 	}
 
+	.projects-filter {
+		align-items: baseline;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2xs) var(--space-s);
+		margin-block-start: var(--space-l);
+	}
+
+	.projects-filter__label {
+		color: var(--text-muted);
+		font-size: var(--step--1);
+	}
+
+	.projects-filter__select {
+		background-color: var(--surface);
+		border: var(--border-width) solid var(--border-strong);
+		border-radius: var(--radius-m);
+		color: var(--text);
+		font: inherit;
+		font-size: var(--step--1);
+		padding: var(--space-3xs) var(--space-2xs);
+	}
+
+	.projects-filter__status {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+	}
+
+	.project[hidden],
+	.projects-toc__list li[hidden] {
+		display: none;
+	}
+
 	@media (min-width: 32rem) {
 		.projects-toc__list {
 			columns: 3;
 		}
 	}
 </style>
+
+<script>
+	// Progressive enhancement only: every section is already in the document,
+	// so this narrows what is shown rather than building the list. With the
+	// script absent the filter stays `hidden` and all fifteen render.
+	const DELIMITER = '|';
+
+	const filter = document.getElementById('stack-filter');
+	const select = document.getElementById('stack-select') as HTMLSelectElement | null;
+	const status = document.querySelector<HTMLElement>('.projects-filter__status');
+
+	if (filter && select && status) {
+		const projects = [...document.querySelectorAll<HTMLElement>('.project[data-stacks]')];
+		const tocItems = [...document.querySelectorAll<HTMLElement>('.projects-toc__list li[data-stacks]')];
+
+		const matches = (element: HTMLElement, stack: string) =>
+			stack === '' || (element.dataset.stacks ?? '').split(DELIMITER).includes(stack);
+
+		const apply = () => {
+			const stack = select.value;
+
+			for (const element of [...projects, ...tocItems]) {
+				element.hidden = !matches(element, stack);
+			}
+
+			const shown = projects.filter((project) => !project.hidden).length;
+			status.textContent =
+				stack === '' ? '' : `Showing ${shown} of ${projects.length} projects.`;
+		};
+
+		filter.hidden = false;
+		select.addEventListener('change', apply);
+		apply();
+	}
+</script>
