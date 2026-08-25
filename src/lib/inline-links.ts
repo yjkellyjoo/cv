@@ -16,12 +16,26 @@ import { z } from 'astro/zod';
  * No `set:html` involved: segments are plain text and an optional href,
  * rendered as ordinary Astro template nodes.
  *
- * Every extracted URL is validated with `z.url()`, the same check
- * `src/content.config.ts` runs on every other link-bearing field.
- * A URL that fails validation throws, naming the offending link text and
- * URL, rather than reaching `href` unvalidated — this runs at build time
- * over committed content, so a malformed link fails the build loudly
- * instead of shipping a broken href.
+ * The destination group allows one level of balanced parentheses —
+ * `(?:[^()\s]|\([^()\s]*\))*` — because CommonMark permits them in a link
+ * destination and `https://en.wikipedia.org/wiki/Foo_(bar)`-shaped URLs are
+ * a real, unremarkable shape. A naive `[^)]+` stops at the first `)`,
+ * truncating that URL to `…Foo_(bar`. Two levels of nesting still truncate
+ * (`(a(b(c))d)` loses the innermost pair); that's beyond what this content
+ * needs, and reaching further means a real parser, which this repository
+ * has already deleted once at four times the size — the boundary here is
+ * deliberate, not an oversight.
+ *
+ * Every extracted URL is also validated with `z.url()`, the same check
+ * `src/content.config.ts` runs on every other link-bearing field, and
+ * throws on failure, naming the offending link text and URL, rather than
+ * reaching `href` unvalidated. This is a different guard from the regex
+ * above and does not stand in for it: the regex keeps a destination from
+ * being cut short, `z.url()` catches a destination that's malformed
+ * outright (e.g. a broken scheme) — it does not, and cannot, catch
+ * truncation, since a truncated URL is still typically syntactically valid.
+ * Both run at build time over committed content, so either failure mode
+ * fails the build loudly instead of shipping a broken href.
  */
 
 export interface InlineSegment {
@@ -29,7 +43,7 @@ export interface InlineSegment {
 	url?: string;
 }
 
-const LINK_PATTERN = /\[([^\]]+)\]\(([^)]+)\)/g;
+const LINK_PATTERN = /\[([^\]]+)\]\(((?:[^()\s]|\([^()\s]*\))*)\)/g;
 
 export function parseInlineLinks(text: string): InlineSegment[] {
 	const segments: InlineSegment[] = [];
