@@ -20,22 +20,33 @@ import { z } from 'astro/zod';
  * `(?:[^()\s]|\([^()\s]*\))*` — because CommonMark permits them in a link
  * destination and `https://en.wikipedia.org/wiki/Foo_(bar)`-shaped URLs are
  * a real, unremarkable shape. A naive `[^)]+` stops at the first `)`,
- * truncating that URL to `…Foo_(bar`. Two levels of nesting still truncate
- * (`(a(b(c))d)` loses the innermost pair); that's beyond what this content
- * needs, and reaching further means a real parser, which this repository
- * has already deleted once at four times the size — the boundary here is
- * deliberate, not an oversight.
+ * truncating that URL to `…Foo_(bar`. Two levels of nesting (e.g.
+ * `(a(b(c))d)`) don't match the pattern at all, so the whole `[label](…)`
+ * falls through unmatched and renders as literal Markdown text on the page
+ * — silently, not a truncated href. That's beyond what this content needs,
+ * and reaching further means a real parser, which this repository has
+ * already deleted once at four times the size — the boundary here is
+ * deliberate, not an oversight, but it fails open (inert text) rather than
+ * loud, so it's worth knowing about.
  *
- * Every extracted URL is also validated with `z.url()`, the same check
- * `src/content.config.ts` runs on every other link-bearing field, and
- * throws on failure, naming the offending link text and URL, rather than
- * reaching `href` unvalidated. This is a different guard from the regex
- * above and does not stand in for it: the regex keeps a destination from
- * being cut short, `z.url()` catches a destination that's malformed
- * outright (e.g. a broken scheme) — it does not, and cannot, catch
- * truncation, since a truncated URL is still typically syntactically valid.
- * Both run at build time over committed content, so either failure mode
- * fails the build loudly instead of shipping a broken href.
+ * Every extracted URL is also run through `z.url({ protocol: /^https$/i })`
+ * — restricted to `https`, unlike the bare `z.url()` every other
+ * link-bearing field in `src/content.config.ts` uses, because those fields
+ * take a whole URL from frontmatter while this one extracts a URL out of
+ * the *middle* of a string a build author typed by hand, an easier place
+ * for `javascript:` or `data:` to land unnoticed. Every URL in the content
+ * today is `https`; `http` is refused too since nothing currently needs it
+ * and there's no reason to admit an unencrypted scheme this module didn't
+ * already carry. A destination that fails this check throws, naming the
+ * offending link text and URL, rather than reaching `href` unvalidated.
+ * This guard is distinct from the regex above and neither stands in for
+ * the other: the regex keeps a well-formed destination from being cut
+ * short (a shape failure); `z.url({ protocol })` rejects a destination
+ * that parses fine but names a scheme this module refuses to hand to
+ * `href` (a content failure) — it does not, and cannot, catch truncation,
+ * since a truncated URL is still typically syntactically valid. Both
+ * failures throw at build time over committed content, rather than
+ * shipping a broken or unsafe href silently.
  */
 
 export interface InlineSegment {
@@ -57,7 +68,7 @@ export function parseInlineLinks(text: string): InlineSegment[] {
 			segments.push({ text: text.slice(lastIndex, index) });
 		}
 
-		const result = z.url().safeParse(url);
+		const result = z.url({ protocol: /^https$/i }).safeParse(url);
 		if (!result.success) {
 			throw new Error(`parseInlineLinks: invalid URL in link "[${label}](${url})"`);
 		}
