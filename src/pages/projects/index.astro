@@ -29,6 +29,12 @@ const projects = await Promise.all(
  * than assumed, since a value that did would silently split into two options
  * that match nothing, and a filter that quietly stops matching looks exactly
  * like a filter with no results.
+ *
+ * The script reads the delimiter off the control's `data-delimiter` rather
+ * than repeating the literal, so there is one definition. Hardcoding it on
+ * both sides of the server/client boundary would mean changing this constant
+ * silently breaks matching — the same quiet failure the paragraph above is
+ * about, reintroduced by the fix for it.
  */
 const STACK_DELIMITER = '|';
 
@@ -84,7 +90,7 @@ const stackOptions = [...stackCounts.entries()].sort(
 				showing them none. Every section is rendered server-side either way,
 				so the page is complete without this.
 			*/}
-			<div class="projects-filter" id="stack-filter" hidden>
+			<div class="projects-filter" id="stack-filter" data-delimiter={STACK_DELIMITER} hidden>
 				<label class="projects-filter__label" for="stack-select">Filter by stack</label>
 				<select class="projects-filter__select" id="stack-select">
 					<option value="">All stacks ({projects.length} projects)</option>
@@ -379,18 +385,18 @@ const stackOptions = [...stackCounts.entries()].sort(
 	// Progressive enhancement only: every section is already in the document,
 	// so this narrows what is shown rather than building the list. With the
 	// script absent the filter stays `hidden` and all fifteen render.
-	const DELIMITER = '|';
-
 	const filter = document.getElementById('stack-filter');
 	const select = document.getElementById('stack-select') as HTMLSelectElement | null;
 	const status = document.querySelector<HTMLElement>('.projects-filter__status');
 
-	if (filter && select && status) {
+	const delimiter = filter?.dataset.delimiter;
+
+	if (filter && select && status && delimiter) {
 		const projects = [...document.querySelectorAll<HTMLElement>('.project[data-stacks]')];
 		const tocItems = [...document.querySelectorAll<HTMLElement>('.projects-toc__list li[data-stacks]')];
 
 		const matches = (element: HTMLElement, stack: string) =>
-			stack === '' || (element.dataset.stacks ?? '').split(DELIMITER).includes(stack);
+			stack === '' || (element.dataset.stacks ?? '').split(delimiter).includes(stack);
 
 		const apply = () => {
 			const stack = select.value;

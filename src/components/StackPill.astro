@@ -9,22 +9,23 @@
  * stack with a dashed border, so a list mixing both reads at a glance which
  * are named tools and which are descriptive tags.
  *
- * `data-value` carries the raw value the pill was built from, untouched by
- * any display transform on `label`. The stack filter (task 5) matches
- * against this attribute rather than rendered text, per that task's standing
- * ruling — text is presentation and can be styled, truncated, or reordered,
- * an attribute is a contract. Defaults to `label` when the two are the same.
+ * This pill carried a `data-value` attribute for a while, on the expectation
+ * that the stack filter would match against it rather than against rendered
+ * text. The filter reads a `data-stacks` attribute on the project article
+ * instead: one attribute read per project beats walking into its pills and
+ * separating the stack ones from the topic ones. Nothing read `data-value`,
+ * so it is gone — an attribute kept for a consumer that never arrived is the
+ * kind of thing that outlives the reason for it and misleads the next reader.
  */
 interface Props {
 	label: string;
 	kind?: 'stack' | 'topic';
-	value?: string;
 }
 
-const { label, kind = 'stack', value = label } = Astro.props;
+const { label, kind = 'stack' } = Astro.props;
 ---
 
-<span class:list={['pill', kind === 'topic' && 'pill--topic']} data-value={value}>{label}</span>
+<span class:list={['pill', kind === 'topic' && 'pill--topic']}>{label}</span>
 
 <style>
 	.pill {
