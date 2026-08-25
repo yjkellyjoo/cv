@@ -35,12 +35,38 @@ const featuredProjects = (await getCollection('projects'))
 // Awards have no section of their own on the plan's route list, and reading
 // three of them as an orphaned list would repeat what the linked project
 // already says. Keyed by the project id they reference, so a Selected work
-// card can show its own award inline instead.
-const awardByProjectId = new Map(
-	(await getCollection('awards'))
-		.filter((award) => award.data.project)
-		.map((award) => [award.data.project!.id, award.data]),
-);
+// card can show its own award inline instead — grouped into arrays, not a
+// single value, so two awards on the same project both render rather than
+// the second silently overwriting the first.
+//
+// An award only ever surfaces through the card of the project it references
+// — there is no other place on the page that reads the awards collection —
+// so an award whose `project` is missing, or points at a project that isn't
+// among the featured six, would otherwise vanish with no signal at all: the
+// build stays green, `dist` just quietly doesn't contain it. That is exactly
+// the kind of typo `npm run verify` was built to catch for `reference()`
+// dangling at the schema level, but a *valid* reference to a real,
+// non-featured project passes that check fine — it's this page's own
+// featured-only rendering rule that would silently drop it, so this page is
+// what has to assert it.
+const featuredProjectIds = new Set(featuredProjects.map((project) => project.id));
+
+const allAwards = await getCollection('awards');
+const awardByProjectId = new Map<string, (typeof allAwards)[number]['data'][]>();
+for (const award of allAwards) {
+	const projectId = award.data.project?.id;
+	if (!projectId || !featuredProjectIds.has(projectId)) {
+		throw new Error(
+			`Award "${award.data.event}" (${award.id}) references project ${projectId ?? '(none)'}, which is not ` +
+				`one of the featured projects Selected work renders. This award would not appear anywhere on the ` +
+				`site. Either set featured: true on that project, or point this award's "project" at one of the ` +
+				`six featured projects: ${[...featuredProjectIds].join(', ')}.`,
+		);
+	}
+	const existing = awardByProjectId.get(projectId) ?? [];
+	existing.push(award.data);
+	awardByProjectId.set(projectId, existing);
+}
 
 const researchEntries = await Promise.all(
 	(await getCollection('research')).sort(byNewestFirst).map(async (entry) => {
@@ -157,43 +183,12 @@ const contactSocials = profile.socials.map(({ label, handle, url }) => ({
 		</ol>
 	</Section>
 
-	<Section title="Education" id="education">
-		<ul class="education-list">
-			{
-				educationEntries.map((entry) => {
-					const { qualification, institution, institutionUrl, field, grade, dateStart, dateEnd } = entry.data;
-					return (
-						<li class="education-entry">
-							<div class="education-entry__header">
-								<h3>{qualification}</h3>
-								<p class="education-entry__dates">
-									<time datetime={toDateAttr(dateStart)}>{formatMonthYear(dateStart)}</time>
-									{' – '}
-									{dateEnd ? (
-										<time datetime={toDateAttr(dateEnd)}>{formatMonthYear(dateEnd)}</time>
-									) : (
-										'Present'
-									)}
-								</p>
-							</div>
-							<p class="education-entry__institution">
-								{institutionUrl ? <a href={institutionUrl}>{institution}</a> : institution}
-							</p>
-							<p class="education-entry__field">{field}</p>
-							{grade && <p class="education-entry__grade">Grade: {grade}</p>}
-						</li>
-					);
-				})
-			}
-		</ul>
-	</Section>
-
 	<Section title="Selected work" id="selected-work" wide>
 		<ul class="project-grid">
 			{
 				featuredProjects.map((project) => {
 					const { title, summary, icon, logo, dateStart, dateEnd, stacks } = project.data;
-					const award = awardByProjectId.get(project.id);
+					const cardAwards = awardByProjectId.get(project.id) ?? [];
 					return (
 						<li class="project-card">
 							<div class="project-card__visual" aria-hidden="true">
@@ -223,11 +218,15 @@ const contactSocials = profile.socials.map(({ label, handle, url }) => ({
 									))}
 								</ul>
 							)}
-							{award && (
-								<p class="project-card__award">
-									<span aria-hidden="true">🏆</span> {award.placement}
-									{award.track ? `, ${award.track}` : ''} — {award.event} ({award.year})
-								</p>
+							{cardAwards.length > 0 && (
+								<ul class="project-card__awards">
+									{cardAwards.map((award) => (
+										<li class="project-card__award">
+											<span aria-hidden="true">🏆</span> {award.placement}
+											{award.track ? `, ${award.track}` : ''} — {award.event} ({award.year})
+										</li>
+									))}
+								</ul>
 							)}
 							<LinkList links={[{ label: 'View project', url: `/projects/#${project.id}` }]} />
 						</li>
@@ -301,6 +300,37 @@ const contactSocials = profile.socials.map(({ label, handle, url }) => ({
 				})
 			}
 		</ol>
+	</Section>
+
+	<Section title="Education" id="education">
+		<ul class="education-list">
+			{
+				educationEntries.map((entry) => {
+					const { qualification, institution, institutionUrl, field, grade, dateStart, dateEnd } = entry.data;
+					return (
+						<li class="education-entry">
+							<div class="education-entry__header">
+								<h3>{qualification}</h3>
+								<p class="education-entry__dates">
+									<time datetime={toDateAttr(dateStart)}>{formatMonthYear(dateStart)}</time>
+									{' – '}
+									{dateEnd ? (
+										<time datetime={toDateAttr(dateEnd)}>{formatMonthYear(dateEnd)}</time>
+									) : (
+										'Present'
+									)}
+								</p>
+							</div>
+							<p class="education-entry__institution">
+								{institutionUrl ? <a href={institutionUrl}>{institution}</a> : institution}
+							</p>
+							<p class="education-entry__field">{field}</p>
+							{grade && <p class="education-entry__grade">Grade: {grade}</p>}
+						</li>
+					);
+				})
+			}
+		</ul>
 	</Section>
 
 	<Section title="Contact">
@@ -552,6 +582,11 @@ const contactSocials = profile.socials.map(({ label, handle, url }) => ({
 		grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
 		list-style: none;
 		margin: 0;
+		/* global.css caps every ul/ol at --measure (a prose-reading width) —
+		   right for a list of text, wrong for a card grid that's meant to use
+		   the full --wide-width wrapper. Without this the grid silently ran at
+		   ~48.25rem inside a ~62rem wrapper: two columns where three fit. */
+		max-inline-size: none;
 		padding: 0;
 	}
 
@@ -585,7 +620,20 @@ const contactSocials = profile.socials.map(({ label, handle, url }) => ({
 		color: var(--text-muted);
 	}
 
-	.project-card__dates,
+	.project-card__dates {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+	}
+
+	.project-card__awards {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3xs);
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
 	.project-card__award {
 		color: var(--text-faint);
 		font-size: var(--step--1);
@@ -597,6 +645,11 @@ const contactSocials = profile.socials.map(({ label, handle, url }) => ({
 
 	/* ── Research and publications ──────────────────────────────────────── */
 
+	/* Unlike .project-grid, these keep global.css's default ul/ol
+	   max-inline-size: var(--measure) — each entry is prose (a title, a
+	   rendered Markdown abstract or body), sitting in a non-`wide` Section
+	   already capped at --content-width, so --measure is the right
+	   constraint here, not a leftover to strip. */
 	.research-list,
 	.publication-list {
 		display: flex;
