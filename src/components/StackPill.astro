@@ -8,16 +8,23 @@
  * monospace for stack pills and inline code. `topic` pills stay in the sans
  * stack with a dashed border, so a list mixing both reads at a glance which
  * are named tools and which are descriptive tags.
+ *
+ * `data-value` carries the raw value the pill was built from, untouched by
+ * any display transform on `label`. The stack filter (task 5) matches
+ * against this attribute rather than rendered text, per that task's standing
+ * ruling — text is presentation and can be styled, truncated, or reordered,
+ * an attribute is a contract. Defaults to `label` when the two are the same.
  */
 interface Props {
 	label: string;
 	kind?: 'stack' | 'topic';
+	value?: string;
 }
 
-const { label, kind = 'stack' } = Astro.props;
+const { label, kind = 'stack', value = label } = Astro.props;
 ---
 
-<span class:list={['pill', kind === 'topic' && 'pill--topic']}>{label}</span>
+<span class:list={['pill', kind === 'topic' && 'pill--topic']} data-value={value}>{label}</span>
 
 <style>
 	.pill {

@@ -37,9 +37,17 @@ const { title, standfirst, id, wide = false } = Astro.props;
 		border-block-start: var(--border-width) solid var(--border);
 	}
 
+	/* global.css zeroes every margin, so the heading needs its own gap to the
+	   next thing — the standfirst when there is one, the slotted body when
+	   there isn't. Without this an h2 with no standfirst ran straight into its
+	   body with no gap at all. */
+	h2 {
+		margin-block-end: var(--space-s);
+	}
+
 	.standfirst {
 		color: var(--text-muted);
 		font-size: var(--step-1);
-		margin-block: var(--space-2xs) var(--space-m);
+		margin-block-end: var(--space-m);
 	}
 </style>

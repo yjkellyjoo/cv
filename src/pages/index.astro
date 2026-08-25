@@ -8,9 +8,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import profilePhoto from '../assets/profile.jpg';
 
 // profile.summary is the whole lede, two paragraphs. The hero gets only the
-// first — already about two lines at the hero's measure — and About gets
-// whatever is left, so the same prose never appears twice on the page.
-const [heroLede, ...aboutParagraphs] = profile.summary;
+// first sentence of the first paragraph — about two lines at the hero's
+// measure — and About gets everything left over (the rest of that paragraph,
+// then the second one), so the same prose never appears twice on the page.
+const [firstParagraph, ...restParagraphs] = profile.summary;
+const [heroLede, ...firstParagraphRest] = firstParagraph.split(/(?<=[.!?]) +/);
+const aboutParagraphs = [firstParagraphRest.join(' '), ...restParagraphs].filter(
+	(paragraph) => paragraph.length > 0,
+);
 
 // Two label shapes from the same `profile.socials`: terse in the hero
 // (LinkList only ever needs {label, url}), fuller down in Contact.

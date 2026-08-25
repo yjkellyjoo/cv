@@ -4,9 +4,15 @@
  * showcase) and `profile.socials` both fit this same {label, url} shape.
  *
  * The caller decides what the label text says (a bare "GitHub", or "GitHub —
- * @handle"); this component only lays the pairs out and marks each as
- * external. Renders as an inline-wrapping list rather than a block one, so it
- * reads well both inline in the hero and stacked in a contact section.
+ * @handle"); this component only lays the pairs out. Renders as an
+ * inline-wrapping list rather than a block one, so it reads well both inline
+ * in the hero and stacked in a contact section.
+ *
+ * Links open in the current tab (no `target="_blank"`), because this same
+ * component also renders in-page links — a project card's "Read more" into
+ * `/projects/#slug`, say — where forcing a new tab would be wrong. A caller
+ * with a genuinely external link that should open in a new tab has no hook
+ * for that yet; add one if and when a task needs it.
  */
 interface Props {
 	links: { label: string; url: string }[];
@@ -19,7 +25,7 @@ const { links } = Astro.props;
 	{
 		links.map((link) => (
 			<li>
-				<a href={link.url} rel="noopener">
+				<a href={link.url}>
 					{link.label}
 					<span aria-hidden="true">↗</span>
 				</a>
