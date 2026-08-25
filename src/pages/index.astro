@@ -25,6 +25,37 @@ const experienceEntries = await Promise.all(
 
 const educationEntries = (await getCollection('education')).sort(byNewestFirst);
 
+const byNewestDate = <T extends { data: { date: Date } }>(a: T, b: T) =>
+	b.data.date.getTime() - a.data.date.getTime();
+
+const featuredProjects = (await getCollection('projects'))
+	.filter((project) => project.data.featured)
+	.sort(byNewestFirst);
+
+// Awards have no section of their own on the plan's route list, and reading
+// three of them as an orphaned list would repeat what the linked project
+// already says. Keyed by the project id they reference, so a Selected work
+// card can show its own award inline instead.
+const awardByProjectId = new Map(
+	(await getCollection('awards'))
+		.filter((award) => award.data.project)
+		.map((award) => [award.data.project!.id, award.data]),
+);
+
+const researchEntries = await Promise.all(
+	(await getCollection('research')).sort(byNewestFirst).map(async (entry) => {
+		const { Content } = await render(entry);
+		return { entry, Content };
+	}),
+);
+
+const publicationEntries = await Promise.all(
+	(await getCollection('publications')).sort(byNewestDate).map(async (entry) => {
+		const { Content } = await render(entry);
+		return { entry, Content };
+	}),
+);
+
 // profile.summary is the whole lede, two paragraphs. The hero gets only the
 // first sentence of the first paragraph — about two lines at the hero's
 // measure — and About gets everything left over (the rest of that paragraph,
@@ -155,6 +186,121 @@ const contactSocials = profile.socials.map(({ label, handle, url }) => ({
 				})
 			}
 		</ul>
+	</Section>
+
+	<Section title="Selected work" id="selected-work" wide>
+		<ul class="project-grid">
+			{
+				featuredProjects.map((project) => {
+					const { title, summary, icon, logo, dateStart, dateEnd, stacks } = project.data;
+					const award = awardByProjectId.get(project.id);
+					return (
+						<li class="project-card">
+							<div class="project-card__visual" aria-hidden="true">
+								{logo ? (
+									<Image class="project-card__logo" src={logo} alt="" width={64} height={64} />
+								) : (
+									<span class="project-card__icon">{icon}</span>
+								)}
+							</div>
+							<h3>{title}</h3>
+							<p class="project-card__summary">{summary}</p>
+							<p class="project-card__dates">
+								<time datetime={toDateAttr(dateStart)}>{formatMonthYear(dateStart)}</time>
+								{' – '}
+								{dateEnd ? (
+									<time datetime={toDateAttr(dateEnd)}>{formatMonthYear(dateEnd)}</time>
+								) : (
+									'Present'
+								)}
+							</p>
+							{stacks.length > 0 && (
+								<ul class="pill-list">
+									{stacks.map((stack) => (
+										<li>
+											<StackPill label={stack} />
+										</li>
+									))}
+								</ul>
+							)}
+							{award && (
+								<p class="project-card__award">
+									<span aria-hidden="true">🏆</span> {award.placement}
+									{award.track ? `, ${award.track}` : ''} — {award.event} ({award.year})
+								</p>
+							)}
+							<LinkList links={[{ label: 'View project', url: `/projects/#${project.id}` }]} />
+						</li>
+					);
+				})
+			}
+		</ul>
+
+		<p class="section-footer">
+			<a href="/projects/">All projects <span aria-hidden="true">→</span></a>
+		</p>
+	</Section>
+
+	<Section title="Research" id="research">
+		<ol class="research-list">
+			{
+				researchEntries.map(({ entry, Content }) => {
+					const { title, titleLocal, supportOrg, role, dateStart, dateEnd, project } = entry.data;
+					return (
+						<li class="research-entry flow">
+							<h3>{title}</h3>
+							{titleLocal && (
+								<p class="research-entry__title-local" lang="ko">
+									{titleLocal}
+								</p>
+							)}
+							<p class="research-entry__meta">
+								{supportOrg} · {role}
+							</p>
+							<p class="research-entry__dates">
+								<time datetime={toDateAttr(dateStart)}>{formatMonthYear(dateStart)}</time>
+								{' – '}
+								{dateEnd ? (
+									<time datetime={toDateAttr(dateEnd)}>{formatMonthYear(dateEnd)}</time>
+								) : (
+									'Present'
+								)}
+							</p>
+							<Content />
+							{project && <LinkList links={[{ label: 'Related project', url: `/projects/#${project.id}` }]} />}
+						</li>
+					);
+				})
+			}
+		</ol>
+	</Section>
+
+	<Section title="Publications" id="publications">
+		<ol class="publication-list">
+			{
+				publicationEntries.map(({ entry, Content }) => {
+					const { title, venue, date, authorship, pdfUrl, demoUrl, project } = entry.data;
+					const links = [
+						pdfUrl && { label: 'PDF', url: pdfUrl },
+						demoUrl && { label: 'Demo', url: demoUrl },
+						project && { label: 'Related project', url: `/projects/#${project.id}` },
+					].filter((link): link is { label: string; url: string } => Boolean(link));
+					return (
+						<li class="publication-entry flow">
+							<h3>{title}</h3>
+							<p class="publication-entry__meta">
+								{venue} · {authorship}
+							</p>
+							<p class="publication-entry__date">
+								<time datetime={toDateAttr(date)}>{formatMonthYear(date)}</time>
+							</p>
+							<Content />
+							{links.length > 0 && <LinkList links={links} />}
+						</li>
+					);
+				})
+			}
+		</ol>
 	</Section>
 
 	<Section title="Contact">
@@ -394,6 +540,81 @@ const contactSocials = profile.socials.map(({ label, handle, url }) => ({
 
 	.education-entry__field,
 	.education-entry__grade {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+	}
+
+	/* ── Selected work ───────────────────────────────────────────────────── */
+
+	.project-grid {
+		display: grid;
+		gap: var(--space-l);
+		grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.project-card {
+		background-color: var(--surface);
+		border: var(--border-width) solid var(--border);
+		border-radius: var(--radius-m);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2xs);
+		padding: var(--space-m);
+	}
+
+	.project-card__visual {
+		margin-block-end: var(--space-2xs);
+	}
+
+	.project-card__logo {
+		block-size: 3rem;
+		border-radius: var(--radius-s);
+		inline-size: 3rem;
+		object-fit: cover;
+	}
+
+	.project-card__icon {
+		font-size: var(--step-3);
+		line-height: 1;
+	}
+
+	.project-card__summary {
+		color: var(--text-muted);
+	}
+
+	.project-card__dates,
+	.project-card__award {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+	}
+
+	.section-footer {
+		margin-block-start: var(--space-l);
+	}
+
+	/* ── Research and publications ──────────────────────────────────────── */
+
+	.research-list,
+	.publication-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-xl);
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.research-entry__title-local {
+		color: var(--text-muted);
+	}
+
+	.research-entry__meta,
+	.research-entry__dates,
+	.publication-entry__meta,
+	.publication-entry__date {
 		color: var(--text-faint);
 		font-size: var(--step--1);
 	}
