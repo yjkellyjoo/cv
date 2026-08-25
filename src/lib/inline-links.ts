@@ -1,3 +1,5 @@
+import { z } from 'astro/zod';
+
 /**
  * Minimal "[text](url)" link parsing for plain-string schema fields that
  * occasionally carry a single Markdown link — `experience.blurb` on
@@ -13,6 +15,13 @@
  *
  * No `set:html` involved: segments are plain text and an optional href,
  * rendered as ordinary Astro template nodes.
+ *
+ * Every extracted URL is validated with `z.url()`, the same check
+ * `src/content.config.ts` runs on every other link-bearing field.
+ * A URL that fails validation throws, naming the offending link text and
+ * URL, rather than reaching `href` unvalidated — this runs at build time
+ * over committed content, so a malformed link fails the build loudly
+ * instead of shipping a broken href.
  */
 
 export interface InlineSegment {
@@ -33,7 +42,13 @@ export function parseInlineLinks(text: string): InlineSegment[] {
 		if (index > lastIndex) {
 			segments.push({ text: text.slice(lastIndex, index) });
 		}
-		segments.push({ text: label, url });
+
+		const result = z.url().safeParse(url);
+		if (!result.success) {
+			throw new Error(`parseInlineLinks: invalid URL in link "[${label}](${url})"`);
+		}
+
+		segments.push({ text: label, url: result.data });
 		lastIndex = index + full.length;
 	}
 
