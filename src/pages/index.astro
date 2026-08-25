@@ -1,11 +1,29 @@
 ---
 import { Image } from 'astro:assets';
+import { getCollection, render } from 'astro:content';
 
 import LinkList from '../components/LinkList.astro';
 import Section from '../components/Section.astro';
+import StackPill from '../components/StackPill.astro';
 import { profile } from '../data/profile';
+import { formatDuration, formatMonthYear, toDateAttr } from '../lib/dates';
+import { parseInlineLinks } from '../lib/inline-links';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import profilePhoto from '../assets/profile.jpg';
+
+// Newest first, per the plan. Both collections only ever carry a handful of
+// entries, so a plain sort by dateStart at build time is all sorting needs.
+const byNewestFirst = <T extends { data: { dateStart: Date } }>(a: T, b: T) =>
+	b.data.dateStart.getTime() - a.data.dateStart.getTime();
+
+const experienceEntries = await Promise.all(
+	(await getCollection('experience')).sort(byNewestFirst).map(async (entry) => {
+		const { Content } = await render(entry);
+		return { entry, Content };
+	}),
+);
+
+const educationEntries = (await getCollection('education')).sort(byNewestFirst);
 
 // profile.summary is the whole lede, two paragraphs. The hero gets only the
 // first sentence of the first paragraph — about two lines at the hero's
@@ -56,6 +74,87 @@ const contactSocials = profile.socials.map(({ label, handle, url }) => ({
 				<p>{paragraph}</p>
 			))}
 		</div>
+	</Section>
+
+	<Section title="Experience" id="experience">
+		<ol class="timeline">
+			{
+				experienceEntries.map(({ entry, Content }) => {
+					const { role, org, orgUrl, dateStart, dateEnd, blurb, stacks } = entry.data;
+					const isCurrent = !dateEnd;
+					return (
+						<li class:list={['timeline__entry', isCurrent && 'timeline__entry--current']} id={entry.id}>
+							<div class="timeline__rail">
+								<p class="timeline__dates">
+									<time datetime={toDateAttr(dateStart)}>{formatMonthYear(dateStart)}</time>
+									{' – '}
+									{dateEnd ? (
+										<time datetime={toDateAttr(dateEnd)}>{formatMonthYear(dateEnd)}</time>
+									) : (
+										'Present'
+									)}
+								</p>
+								<p class="timeline__duration">
+									{formatDuration(dateStart, dateEnd)}
+									{isCurrent && <span class="timeline__badge">Current</span>}
+								</p>
+							</div>
+
+							<div class="timeline__body flow">
+								<h3>{role}</h3>
+								<p class="timeline__org">{orgUrl ? <a href={orgUrl}>{org}</a> : org}</p>
+								<p>
+									{parseInlineLinks(blurb).map((segment) =>
+										segment.url ? <a href={segment.url}>{segment.text}</a> : segment.text,
+									)}
+								</p>
+								<Content />
+								{stacks.length > 0 && (
+									<ul class="pill-list">
+										{stacks.map((stack) => (
+											<li>
+												<StackPill label={stack} />
+											</li>
+										))}
+									</ul>
+								)}
+							</div>
+						</li>
+					);
+				})
+			}
+		</ol>
+	</Section>
+
+	<Section title="Education" id="education">
+		<ul class="education-list">
+			{
+				educationEntries.map((entry) => {
+					const { qualification, institution, institutionUrl, field, grade, dateStart, dateEnd } = entry.data;
+					return (
+						<li class="education-entry">
+							<div class="education-entry__header">
+								<h3>{qualification}</h3>
+								<p class="education-entry__dates">
+									<time datetime={toDateAttr(dateStart)}>{formatMonthYear(dateStart)}</time>
+									{' – '}
+									{dateEnd ? (
+										<time datetime={toDateAttr(dateEnd)}>{formatMonthYear(dateEnd)}</time>
+									) : (
+										'Present'
+									)}
+								</p>
+							</div>
+							<p class="education-entry__institution">
+								{institutionUrl ? <a href={institutionUrl}>{institution}</a> : institution}
+							</p>
+							<p class="education-entry__field">{field}</p>
+							{grade && <p class="education-entry__grade">Grade: {grade}</p>}
+						</li>
+					);
+				})
+			}
+		</ul>
 	</Section>
 
 	<Section title="Contact">
@@ -159,5 +258,143 @@ const contactSocials = profile.socials.map(({ label, handle, url }) => ({
 
 	.language-list__proficiency {
 		color: var(--text-faint);
+	}
+
+	/* ── Experience timeline ─────────────────────────────────────────────── */
+
+	.timeline {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-xl);
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.timeline__entry {
+		display: grid;
+		gap: var(--space-2xs) var(--space-l);
+		grid-template-columns: minmax(6rem, 8rem) 1fr;
+	}
+
+	.timeline__rail {
+		border-inline-end: var(--border-width) solid var(--border);
+		padding-inline-end: var(--space-m);
+		text-align: end;
+	}
+
+	.timeline__entry--current .timeline__rail {
+		border-inline-end-color: var(--accent);
+	}
+
+	.timeline__dates {
+		color: var(--text-muted);
+		font-size: var(--step--1);
+	}
+
+	.timeline__duration {
+		align-items: center;
+		color: var(--text-faint);
+		display: inline-flex;
+		flex-wrap: wrap;
+		font-family: var(--font-mono);
+		font-size: var(--step--2);
+		gap: var(--space-2xs);
+		justify-content: flex-end;
+		margin-block-start: var(--space-3xs);
+	}
+
+	.timeline__badge {
+		background-color: var(--accent-bg);
+		border-radius: var(--radius-pill);
+		color: var(--accent);
+		font-family: var(--font-sans);
+		font-size: var(--step--2);
+		font-weight: var(--weight-medium);
+		letter-spacing: var(--tracking-wide);
+		padding-block: var(--space-3xs);
+		padding-inline: var(--space-2xs);
+		text-transform: uppercase;
+	}
+
+	.timeline__org {
+		color: var(--text-muted);
+		font-weight: var(--weight-medium);
+	}
+
+	.pill-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2xs);
+		list-style: none;
+		margin: 0;
+		max-inline-size: none;
+		padding: 0;
+	}
+
+	/* Below this, the rail's two-line date/duration stack has no room to sit
+	   beside the body — stack it above instead, full width. */
+	@media (max-width: 32rem) {
+		.timeline__entry {
+			grid-template-columns: 1fr;
+		}
+
+		.timeline__rail {
+			border-inline-end: none;
+			border-block-end: var(--border-width) solid var(--border);
+			padding-block-end: var(--space-2xs);
+			padding-inline-end: 0;
+			text-align: start;
+		}
+
+		.timeline__entry--current .timeline__rail {
+			border-block-end-color: var(--accent);
+			border-inline-end-color: var(--border);
+		}
+
+		.timeline__duration {
+			justify-content: flex-start;
+		}
+	}
+
+	/* ── Education ───────────────────────────────────────────────────────── */
+
+	.education-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-l);
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.education-entry {
+		display: grid;
+		gap: var(--space-3xs);
+	}
+
+	.education-entry__header {
+		align-items: baseline;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-xs);
+		justify-content: space-between;
+	}
+
+	.education-entry__dates {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+		white-space: nowrap;
+	}
+
+	.education-entry__institution {
+		color: var(--text-muted);
+		font-weight: var(--weight-medium);
+	}
+
+	.education-entry__field,
+	.education-entry__grade {
+		color: var(--text-faint);
+		font-size: var(--step--1);
 	}
 </style>
