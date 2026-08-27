@@ -1,24 +1,674 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
+import { Image } from 'astro:assets';
+import { getCollection, render } from 'astro:content';
+
+import LinkList from '../components/LinkList.astro';
+import Section from '../components/Section.astro';
+import StackPill from '../components/StackPill.astro';
 import { profile } from '../data/profile';
+import { formatDuration, formatMonthYear, toDateAttr } from '../lib/dates';
+import { parseInlineLinks } from '../lib/inline-links';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import profilePhoto from '../assets/profile.jpg';
+
+// Newest first, per the plan. Both collections only ever carry a handful of
+// entries, so a plain sort by dateStart at build time is all sorting needs.
+const byNewestFirst = <T extends { data: { dateStart: Date } }>(a: T, b: T) =>
+	b.data.dateStart.getTime() - a.data.dateStart.getTime();
+
+const experienceEntries = await Promise.all(
+	(await getCollection('experience')).sort(byNewestFirst).map(async (entry) => {
+		const { Content } = await render(entry);
+		return { entry, Content };
+	}),
+);
+
+const educationEntries = (await getCollection('education')).sort(byNewestFirst);
+
+const byNewestDate = <T extends { data: { date: Date } }>(a: T, b: T) =>
+	b.data.date.getTime() - a.data.date.getTime();
+
+const featuredProjects = (await getCollection('projects'))
+	.filter((project) => project.data.featured)
+	.sort(byNewestFirst);
+
+// Awards have no section of their own on the plan's route list, and reading
+// three of them as an orphaned list would repeat what the linked project
+// already says. Keyed by the project id they reference, so a Selected work
+// card can show its own award inline instead — grouped into arrays, not a
+// single value, so two awards on the same project both render rather than
+// the second silently overwriting the first.
+//
+// An award only ever surfaces through the card of the project it references
+// — there is no other place on the page that reads the awards collection —
+// so an award whose `project` is missing, or points at a project that isn't
+// among the featured six, would otherwise vanish with no signal at all: the
+// build stays green, `dist` just quietly doesn't contain it. That is exactly
+// the kind of typo `npm run verify` was built to catch for `reference()`
+// dangling at the schema level, but a *valid* reference to a real,
+// non-featured project passes that check fine — it's this page's own
+// featured-only rendering rule that would silently drop it, so this page is
+// what has to assert it.
+const featuredProjectIds = new Set(featuredProjects.map((project) => project.id));
+
+const allAwards = await getCollection('awards');
+const awardByProjectId = new Map<string, (typeof allAwards)[number]['data'][]>();
+for (const award of allAwards) {
+	const projectId = award.data.project?.id;
+	if (!projectId || !featuredProjectIds.has(projectId)) {
+		throw new Error(
+			`Award "${award.data.event}" (${award.id}) references project ${projectId ?? '(none)'}, which is not ` +
+				`one of the featured projects Selected work renders. This award would not appear anywhere on the ` +
+				`site. Either set featured: true on that project, or point this award's "project" at one of the ` +
+				`six featured projects: ${[...featuredProjectIds].join(', ')}.`,
+		);
+	}
+	const existing = awardByProjectId.get(projectId) ?? [];
+	existing.push(award.data);
+	awardByProjectId.set(projectId, existing);
+}
+
+const researchEntries = await Promise.all(
+	(await getCollection('research')).sort(byNewestFirst).map(async (entry) => {
+		const { Content } = await render(entry);
+		return { entry, Content };
+	}),
+);
+
+const publicationEntries = await Promise.all(
+	(await getCollection('publications')).sort(byNewestDate).map(async (entry) => {
+		const { Content } = await render(entry);
+		return { entry, Content };
+	}),
+);
+
+// profile.summary is the whole lede, two paragraphs. The hero gets only the
+// first sentence of the first paragraph — about two lines at the hero's
+// measure — and About gets everything left over (the rest of that paragraph,
+// then the second one), so the same prose never appears twice on the page.
+const [firstParagraph, ...restParagraphs] = profile.summary;
+const [heroLede, ...firstParagraphRest] = firstParagraph.split(/(?<=[.!?]) +/);
+const aboutParagraphs = [firstParagraphRest.join(' '), ...restParagraphs].filter(
+	(paragraph) => paragraph.length > 0,
+);
+
+// Two label shapes from the same `profile.socials`: terse in the hero
+// (LinkList only ever needs {label, url}), fuller down in Contact.
+const heroSocials = profile.socials.map(({ label, url }) => ({ label, url }));
+const contactSocials = profile.socials.map(({ label, handle, url }) => ({
+	label: `${label} — ${handle}`,
+	url,
+}));
 ---
 
 <BaseLayout>
-	<div class="wrapper">
-		<h1>{profile.name}</h1>
-		<p class="lede">{profile.title}</p>
-		{profile.summary.map((paragraph) => <p>{paragraph}</p>)}
+	<div class="wrapper hero">
+		<Image
+			class="hero__photo"
+			src={profilePhoto}
+			alt={`Portrait of ${profile.name}`}
+			width={192}
+			height={256}
+			format="webp"
+			loading="eager"
+		/>
+
+		<div class="hero__intro">
+			<h1>{profile.name}</h1>
+			<p class="hero__tagline">{profile.title}</p>
+			<p class="hero__lede">{heroLede}</p>
+
+			<div class="hero__contact">
+				<a href={`mailto:${profile.email}`}>{profile.email}</a>
+				<LinkList links={heroSocials} />
+			</div>
+		</div>
 	</div>
 
-	<style>
-		.lede {
-			color: var(--text-muted);
-			font-size: var(--step-1);
-			margin-block: var(--space-2xs) var(--space-m);
+	<Section title="About">
+		<div class="flow">
+			{aboutParagraphs.map((paragraph) => (
+				<p>{paragraph}</p>
+			))}
+		</div>
+	</Section>
+
+	<Section title="Experience" id="experience">
+		<ol class="timeline">
+			{
+				experienceEntries.map(({ entry, Content }) => {
+					const { role, org, orgUrl, dateStart, dateEnd, blurb, stacks } = entry.data;
+					const isCurrent = !dateEnd;
+					return (
+						<li class:list={['timeline__entry', isCurrent && 'timeline__entry--current']} id={entry.id}>
+							<div class="timeline__rail">
+								<p class="timeline__dates">
+									<time datetime={toDateAttr(dateStart)}>{formatMonthYear(dateStart)}</time>
+									{' – '}
+									{dateEnd ? (
+										<time datetime={toDateAttr(dateEnd)}>{formatMonthYear(dateEnd)}</time>
+									) : (
+										'Present'
+									)}
+								</p>
+								<p class="timeline__duration">
+									{formatDuration(dateStart, dateEnd)}
+									{isCurrent && <span class="timeline__badge">Current</span>}
+								</p>
+							</div>
+
+							<div class="timeline__body flow">
+								<h3>{role}</h3>
+								<p class="timeline__org">{orgUrl ? <a href={orgUrl}>{org}</a> : org}</p>
+								<p>
+									{parseInlineLinks(blurb).map((segment) =>
+										segment.url ? <a href={segment.url}>{segment.text}</a> : segment.text,
+									)}
+								</p>
+								<Content />
+								{stacks.length > 0 && (
+									<ul class="pill-list">
+										{stacks.map((stack) => (
+											<li>
+												<StackPill label={stack} />
+											</li>
+										))}
+									</ul>
+								)}
+							</div>
+						</li>
+					);
+				})
+			}
+		</ol>
+	</Section>
+
+	<Section title="Selected work" id="selected-work" wide>
+		<ul class="project-grid">
+			{
+				featuredProjects.map((project) => {
+					const { title, summary, icon, logo, dateStart, dateEnd, stacks } = project.data;
+					const cardAwards = awardByProjectId.get(project.id) ?? [];
+					return (
+						<li class="project-card">
+							<div class="project-card__visual" aria-hidden="true">
+								{logo ? (
+									<Image class="project-card__logo" src={logo} alt="" width={64} height={64} />
+								) : (
+									<span class="project-card__icon">{icon}</span>
+								)}
+							</div>
+							<h3>{title}</h3>
+							<p class="project-card__summary">{summary}</p>
+							<p class="project-card__dates">
+								<time datetime={toDateAttr(dateStart)}>{formatMonthYear(dateStart)}</time>
+								{' – '}
+								{dateEnd ? (
+									<time datetime={toDateAttr(dateEnd)}>{formatMonthYear(dateEnd)}</time>
+								) : (
+									'Present'
+								)}
+							</p>
+							{stacks.length > 0 && (
+								<ul class="pill-list">
+									{stacks.map((stack) => (
+										<li>
+											<StackPill label={stack} />
+										</li>
+									))}
+								</ul>
+							)}
+							{cardAwards.length > 0 && (
+								<ul class="project-card__awards">
+									{cardAwards.map((award) => (
+										<li class="project-card__award">
+											<span aria-hidden="true">🏆</span> {award.placement}
+											{award.track ? `, ${award.track}` : ''} — {award.event} ({award.year})
+										</li>
+									))}
+								</ul>
+							)}
+							<LinkList links={[{ label: 'View project', url: `/projects/#${project.id}` }]} />
+						</li>
+					);
+				})
+			}
+		</ul>
+
+		<p class="section-footer">
+			<a href="/projects/">All projects <span aria-hidden="true">→</span></a>
+		</p>
+	</Section>
+
+	<Section title="Research" id="research">
+		<ol class="research-list">
+			{
+				researchEntries.map(({ entry, Content }) => {
+					const { title, titleLocal, supportOrg, role, dateStart, dateEnd, project } = entry.data;
+					return (
+						<li class="research-entry flow">
+							<h3>{title}</h3>
+							{titleLocal && (
+								<p class="research-entry__title-local" lang="ko">
+									{titleLocal}
+								</p>
+							)}
+							<p class="research-entry__meta">
+								{supportOrg} · {role}
+							</p>
+							<p class="research-entry__dates">
+								<time datetime={toDateAttr(dateStart)}>{formatMonthYear(dateStart)}</time>
+								{' – '}
+								{dateEnd ? (
+									<time datetime={toDateAttr(dateEnd)}>{formatMonthYear(dateEnd)}</time>
+								) : (
+									'Present'
+								)}
+							</p>
+							<Content />
+							{project && <LinkList links={[{ label: 'Related project', url: `/projects/#${project.id}` }]} />}
+						</li>
+					);
+				})
+			}
+		</ol>
+	</Section>
+
+	<Section title="Publications" id="publications">
+		<ol class="publication-list">
+			{
+				publicationEntries.map(({ entry, Content }) => {
+					const { title, venue, date, authorship, pdfUrl, demoUrl, project } = entry.data;
+					const links = [
+						pdfUrl && { label: 'PDF', url: pdfUrl },
+						demoUrl && { label: 'Demo', url: demoUrl },
+						project && { label: 'Related project', url: `/projects/#${project.id}` },
+					].filter((link): link is { label: string; url: string } => Boolean(link));
+					return (
+						<li class="publication-entry flow">
+							<h3>{title}</h3>
+							<p class="publication-entry__meta">
+								{venue} · {authorship}
+							</p>
+							<p class="publication-entry__date">
+								<time datetime={toDateAttr(date)}>{formatMonthYear(date)}</time>
+							</p>
+							<Content />
+							{links.length > 0 && <LinkList links={links} />}
+						</li>
+					);
+				})
+			}
+		</ol>
+	</Section>
+
+	<Section title="Education" id="education">
+		<ul class="education-list">
+			{
+				educationEntries.map((entry) => {
+					const { qualification, institution, institutionUrl, field, grade, dateStart, dateEnd } = entry.data;
+					return (
+						<li class="education-entry">
+							<div class="education-entry__header">
+								<h3>{qualification}</h3>
+								<p class="education-entry__dates">
+									<time datetime={toDateAttr(dateStart)}>{formatMonthYear(dateStart)}</time>
+									{' – '}
+									{dateEnd ? (
+										<time datetime={toDateAttr(dateEnd)}>{formatMonthYear(dateEnd)}</time>
+									) : (
+										'Present'
+									)}
+								</p>
+							</div>
+							<p class="education-entry__institution">
+								{institutionUrl ? <a href={institutionUrl}>{institution}</a> : institution}
+							</p>
+							<p class="education-entry__field">{field}</p>
+							{grade && <p class="education-entry__grade">Grade: {grade}</p>}
+						</li>
+					);
+				})
+			}
+		</ul>
+	</Section>
+
+	<Section title="Contact">
+		<dl class="contact-list">
+			<div class="contact-list__row">
+				<dt>Email</dt>
+				<dd><a href={`mailto:${profile.email}`}>{profile.email}</a></dd>
+			</div>
+
+			<div class="contact-list__row">
+				<dt>Location</dt>
+				<dd>{profile.location}</dd>
+			</div>
+
+			<div class="contact-list__row">
+				<dt>Languages</dt>
+				<dd>
+					<ul class="language-list">
+						{profile.languages.spoken.map((language) => (
+							<li>
+								<span aria-hidden="true">{language.flag}</span> {language.name} <span class="language-list__proficiency">({language.proficiency})</span>
+							</li>
+						))}
+					</ul>
+				</dd>
+			</div>
+
+			<div class="contact-list__row">
+				<dt>Elsewhere</dt>
+				<dd><LinkList links={contactSocials} /></dd>
+			</div>
+		</dl>
+	</Section>
+</BaseLayout>
+
+<style>
+	.hero {
+		align-items: flex-start;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-l);
+		padding-block: var(--space-l) var(--space-2xl);
+	}
+
+	.hero__photo {
+		border-radius: var(--radius-m);
+		flex-shrink: 0;
+		inline-size: clamp(7.5rem, 20vw, 10rem);
+	}
+
+	.hero__intro {
+		min-inline-size: 0;
+	}
+
+	.hero__tagline {
+		color: var(--text-muted);
+		font-size: var(--step-1);
+		margin-block: var(--space-2xs) var(--space-m);
+	}
+
+	.hero__lede {
+		margin-block-end: var(--space-m);
+	}
+
+	.hero__contact {
+		align-items: center;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-m);
+	}
+
+	.contact-list {
+		display: grid;
+		gap: var(--space-m);
+	}
+
+	.contact-list__row {
+		display: grid;
+		gap: var(--space-3xs);
+	}
+
+	.contact-list dt {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+		letter-spacing: var(--tracking-wide);
+		text-transform: uppercase;
+	}
+
+	.contact-list dd {
+		margin-inline-start: 0;
+	}
+
+	.language-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-xs) var(--space-m);
+		list-style: none;
+		max-inline-size: none;
+		padding: 0;
+	}
+
+	.language-list__proficiency {
+		color: var(--text-faint);
+	}
+
+	/* ── Experience timeline ─────────────────────────────────────────────── */
+
+	.timeline {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-xl);
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.timeline__entry {
+		display: grid;
+		gap: var(--space-2xs) var(--space-l);
+		grid-template-columns: minmax(6rem, 8rem) 1fr;
+	}
+
+	.timeline__rail {
+		border-inline-end: var(--border-width) solid var(--border);
+		padding-inline-end: var(--space-m);
+		text-align: end;
+	}
+
+	.timeline__entry--current .timeline__rail {
+		border-inline-end-color: var(--accent);
+	}
+
+	.timeline__dates {
+		color: var(--text-muted);
+		font-size: var(--step--1);
+	}
+
+	.timeline__duration {
+		align-items: center;
+		color: var(--text-faint);
+		display: inline-flex;
+		flex-wrap: wrap;
+		font-family: var(--font-mono);
+		font-size: var(--step--2);
+		gap: var(--space-2xs);
+		justify-content: flex-end;
+		margin-block-start: var(--space-3xs);
+	}
+
+	.timeline__badge {
+		background-color: var(--accent-bg);
+		border-radius: var(--radius-pill);
+		color: var(--accent);
+		font-family: var(--font-sans);
+		font-size: var(--step--2);
+		font-weight: var(--weight-medium);
+		letter-spacing: var(--tracking-wide);
+		padding-block: var(--space-3xs);
+		padding-inline: var(--space-2xs);
+		text-transform: uppercase;
+	}
+
+	.timeline__org {
+		color: var(--text-muted);
+		font-weight: var(--weight-medium);
+	}
+
+	.pill-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2xs);
+		list-style: none;
+		margin: 0;
+		max-inline-size: none;
+		padding: 0;
+	}
+
+	/* Below this, the rail's two-line date/duration stack has no room to sit
+	   beside the body — stack it above instead, full width. */
+	@media (max-width: 32rem) {
+		.timeline__entry {
+			grid-template-columns: 1fr;
 		}
 
-		p + p {
-			margin-block-start: var(--space-s);
+		.timeline__rail {
+			border-inline-end: none;
+			border-block-end: var(--border-width) solid var(--border);
+			padding-block-end: var(--space-2xs);
+			padding-inline-end: 0;
+			text-align: start;
 		}
-	</style>
-</BaseLayout>
+
+		.timeline__entry--current .timeline__rail {
+			border-block-end-color: var(--accent);
+			border-inline-end-color: var(--border);
+		}
+
+		.timeline__duration {
+			justify-content: flex-start;
+		}
+	}
+
+	/* ── Education ───────────────────────────────────────────────────────── */
+
+	.education-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-l);
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.education-entry {
+		display: grid;
+		gap: var(--space-3xs);
+	}
+
+	.education-entry__header {
+		align-items: baseline;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-xs);
+		justify-content: space-between;
+	}
+
+	.education-entry__dates {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+		white-space: nowrap;
+	}
+
+	.education-entry__institution {
+		color: var(--text-muted);
+		font-weight: var(--weight-medium);
+	}
+
+	.education-entry__field,
+	.education-entry__grade {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+	}
+
+	/* ── Selected work ───────────────────────────────────────────────────── */
+
+	.project-grid {
+		display: grid;
+		gap: var(--space-l);
+		grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+		list-style: none;
+		margin: 0;
+		/* global.css caps every ul/ol at --measure (a prose-reading width) —
+		   right for a list of text, wrong for a card grid that's meant to use
+		   the full --wide-width wrapper. Without this the grid silently ran at
+		   ~48.25rem inside a ~62rem wrapper: two columns where three fit. */
+		max-inline-size: none;
+		padding: 0;
+	}
+
+	.project-card {
+		background-color: var(--surface);
+		border: var(--border-width) solid var(--border);
+		border-radius: var(--radius-m);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2xs);
+		padding: var(--space-m);
+	}
+
+	.project-card__visual {
+		margin-block-end: var(--space-2xs);
+	}
+
+	.project-card__logo {
+		block-size: 3rem;
+		border-radius: var(--radius-s);
+		inline-size: 3rem;
+		object-fit: cover;
+	}
+
+	.project-card__icon {
+		font-size: var(--step-3);
+		line-height: 1;
+	}
+
+	.project-card__summary {
+		color: var(--text-muted);
+	}
+
+	.project-card__dates {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+	}
+
+	.project-card__awards {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3xs);
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.project-card__award {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+	}
+
+	.section-footer {
+		margin-block-start: var(--space-l);
+	}
+
+	/* ── Research and publications ──────────────────────────────────────── */
+
+	/* Unlike .project-grid, these keep global.css's default ul/ol
+	   max-inline-size: var(--measure) — each entry is prose (a title, a
+	   rendered Markdown abstract or body), sitting in a non-`wide` Section
+	   already capped at --content-width, so --measure is the right
+	   constraint here, not a leftover to strip. */
+	.research-list,
+	.publication-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-xl);
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.research-entry__title-local {
+		color: var(--text-muted);
+	}
+
+	.research-entry__meta,
+	.research-entry__dates,
+	.publication-entry__meta,
+	.publication-entry__date {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+	}
+</style>

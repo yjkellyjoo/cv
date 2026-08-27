@@ -1,0 +1,417 @@
+---
+import { Image } from 'astro:assets';
+import { getCollection, render } from 'astro:content';
+
+import LinkList from '../../components/LinkList.astro';
+import StackPill from '../../components/StackPill.astro';
+import { formatMonthYear, toDateAttr } from '../../lib/dates';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+// One route with fifteen anchored sections rather than fifteen routes: the
+// bodies are short — a median of about 150 words — so separate pages would
+// each be mostly chrome, and a reader comparing projects would pay a
+// navigation round trip per comparison. The anchor is the entry `id`, which
+// is the filename, so `/projects/#pet-id` is stable without a slug field.
+const projects = await Promise.all(
+	(await getCollection('projects'))
+		.sort((a, b) => b.data.dateStart.getTime() - a.data.dateStart.getTime())
+		.map(async (entry) => {
+			const { Content } = await render(entry);
+			return { entry, Content };
+		}),
+);
+
+/**
+ * The filter matches on a delimited attribute rather than on pill text, so it
+ * keeps working if a pill is ever restyled, truncated or reordered.
+ *
+ * `|` is the delimiter because no stack value contains one — asserted rather
+ * than assumed, since a value that did would silently split into two options
+ * that match nothing, and a filter that quietly stops matching looks exactly
+ * like a filter with no results.
+ *
+ * The script reads the delimiter off the control's `data-delimiter` rather
+ * than repeating the literal, so there is one definition. Hardcoding it on
+ * both sides of the server/client boundary would mean changing this constant
+ * silently breaks matching — the same quiet failure the paragraph above is
+ * about, reintroduced by the fix for it.
+ */
+const STACK_DELIMITER = '|';
+
+for (const { entry } of projects) {
+	for (const stack of entry.data.stacks) {
+		if (stack.includes(STACK_DELIMITER)) {
+			throw new Error(
+				`projects/index.astro: stack "${stack}" on "${entry.id}" contains ${STACK_DELIMITER}, which the filter uses as its delimiter`,
+			);
+		}
+	}
+}
+
+/**
+ * Options come from the union of every project's `stacks`, ordered by how many
+ * projects carry each so the useful filters sit at the top, then alphabetically.
+ * Thirteen of the nineteen values appear on exactly one project, which is why
+ * this is a select rather than a row of pills: as pills, two thirds of the row
+ * would be single-project options, and the control would be longer than some of
+ * the sections it filters. The count rides along in each label so a reader can
+ * see what a choice is worth before making it.
+ */
+const stackCounts = new Map<string, number>();
+for (const { entry } of projects) {
+	for (const stack of entry.data.stacks) {
+		stackCounts.set(stack, (stackCounts.get(stack) ?? 0) + 1);
+	}
+}
+
+const stackOptions = [...stackCounts.entries()].sort(
+	([aLabel, aCount], [bLabel, bCount]) => bCount - aCount || aLabel.localeCompare(bLabel),
+);
+---
+
+<BaseLayout
+	title="Projects"
+	description="Fifteen projects in blockchain engineering, security research and developer tooling."
+>
+	<div class="wrapper wrapper--wide projects-page">
+		<header class="projects-header">
+			<p class="projects-header__back">
+				<a href="/"><span aria-hidden="true">←</span> Back to CV</a>
+			</p>
+			<h1>Projects</h1>
+			<p class="projects-header__lede">
+				Fifteen projects, newest first — blockchain infrastructure, security research and the
+				hackathon builds in between.
+			</p>
+
+			{/*
+				`hidden` until the script removes it: with JavaScript off the control
+				would do nothing, and showing a reader a dead select is worse than
+				showing them none. Every section is rendered server-side either way,
+				so the page is complete without this.
+			*/}
+			<div class="projects-filter" id="stack-filter" data-delimiter={STACK_DELIMITER} hidden>
+				<label class="projects-filter__label" for="stack-select">Filter by stack</label>
+				<select class="projects-filter__select" id="stack-select">
+					<option value="">All stacks ({projects.length} projects)</option>
+					{
+						stackOptions.map(([label, count]) => (
+							<option value={label}>
+								{label} ({count})
+							</option>
+						))
+					}
+				</select>
+				<p class="projects-filter__status" role="status" aria-live="polite"></p>
+			</div>
+
+			{/*
+				Fifteen sections is a lot of scrolling, so the page opens with its own
+				contents. Plain anchor links, no script: it costs nothing, works with
+				JavaScript disabled, and doubles as an at-a-glance list of everything
+				here for a reader who only wants to know what exists.
+			*/}
+			<nav class="projects-toc" aria-label="Projects on this page">
+				<ol class="projects-toc__list">
+					{
+						projects.map(({ entry }) => (
+							<li data-stacks={entry.data.stacks.join(STACK_DELIMITER)}>
+								<a href={`#${entry.id}`}>{entry.data.title}</a>
+							</li>
+						))
+					}
+				</ol>
+			</nav>
+		</header>
+
+		{
+			projects.map(({ entry, Content }) => {
+				const { title, summary, icon, logo, dateStart, dateEnd, stacks, topics, links } =
+					entry.data;
+				return (
+					<article
+						class="project"
+						id={entry.id}
+						data-stacks={stacks.join(STACK_DELIMITER)}
+					>
+						<header class="project__header">
+							<div class="project__visual" aria-hidden="true">
+								{logo ? (
+									<Image class="project__logo" src={logo} alt="" width={56} height={56} />
+								) : (
+									<span class="project__icon">{icon}</span>
+								)}
+							</div>
+							<div class="project__heading">
+								<h2>{title}</h2>
+								<p class="project__dates">
+									<time datetime={toDateAttr(dateStart)}>{formatMonthYear(dateStart)}</time>
+									{' – '}
+									{dateEnd ? (
+										<time datetime={toDateAttr(dateEnd)}>{formatMonthYear(dateEnd)}</time>
+									) : (
+										'Present'
+									)}
+								</p>
+							</div>
+						</header>
+
+						<p class="project__summary">{summary}</p>
+
+						{(stacks.length > 0 || topics.length > 0) && (
+							<ul class="pill-list">
+								{stacks.map((stack) => (
+									<li>
+										<StackPill label={stack} />
+									</li>
+								))}
+								{topics.map((topic) => (
+									<li>
+										<StackPill label={topic} kind="topic" />
+									</li>
+								))}
+							</ul>
+						)}
+
+						{links.length > 0 && <LinkList links={links} />}
+
+						{/*
+							`.flow` is what gives the rendered Markdown its vertical rhythm:
+							global.css zeroes every margin, so without it a body's headings,
+							paragraphs, lists and images stack with no gaps at all.
+						*/}
+						<div class="project__body flow">
+							<Content />
+						</div>
+					</article>
+				);
+			})
+		}
+	</div>
+</BaseLayout>
+
+<style>
+	.projects-page {
+		padding-block: var(--space-l) var(--space-3xl);
+	}
+
+	.projects-header {
+		margin-block-end: var(--space-2xl);
+	}
+
+	.projects-header__back {
+		margin-block-end: var(--space-m);
+	}
+
+	.projects-header__back a {
+		color: var(--text-muted);
+		font-size: var(--step--1);
+		text-decoration: none;
+	}
+
+	.projects-header__back a:hover {
+		color: var(--accent);
+	}
+
+	.projects-header__lede {
+		color: var(--text-muted);
+		font-size: var(--step-1);
+		margin-block-start: var(--space-xs);
+	}
+
+	.projects-toc {
+		border-block-start: var(--border-width) solid var(--border);
+		margin-block-start: var(--space-l);
+		padding-block-start: var(--space-m);
+	}
+
+	/*
+	 * A layout list, not prose, so it opts out of the --measure cap global.css
+	 * puts on every ul/ol — the same override .pill-list and .project-grid use.
+	 */
+	.projects-toc__list {
+		columns: 2;
+		column-gap: var(--space-l);
+		list-style: none;
+		margin: 0;
+		max-inline-size: none;
+		padding: 0;
+	}
+
+	.projects-toc__list li {
+		break-inside: avoid;
+		font-size: var(--step--1);
+		margin-block-end: var(--space-3xs);
+		max-inline-size: none;
+	}
+
+	.projects-toc__list a {
+		text-decoration-color: var(--border-strong);
+	}
+
+	/*
+	 * The page wrapper is --wide-width so the contents list can run in columns,
+	 * but a project is long-form prose and its body paragraphs cap at --measure
+	 * regardless. Left at the full width, everything inside disagreed about
+	 * where the right edge was: body text at ~773px, the summary at ~944px, and
+	 * the pill rows free to run the whole 992px. Capping the article itself
+	 * keeps the header, summary, pills, links and body on one column edge.
+	 */
+	.project {
+		border-block-start: var(--border-width) solid var(--border);
+		max-inline-size: var(--content-width);
+		padding-block: var(--space-2xl);
+	}
+
+	.project__header {
+		align-items: center;
+		display: flex;
+		gap: var(--space-s);
+		margin-block-end: var(--space-s);
+	}
+
+	.project__visual {
+		align-items: center;
+		display: flex;
+		flex: none;
+		justify-content: center;
+		block-size: 3.5rem;
+		inline-size: 3.5rem;
+	}
+
+	.project__logo {
+		block-size: auto;
+		border-radius: var(--radius-m);
+		inline-size: 100%;
+		object-fit: contain;
+	}
+
+	.project__icon {
+		font-size: var(--step-3);
+		line-height: 1;
+	}
+
+	.project__dates {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+		margin-block-start: var(--space-3xs);
+	}
+
+	.project__summary {
+		color: var(--text-muted);
+		font-size: var(--step-1);
+		margin-block-end: var(--space-m);
+	}
+
+	.pill-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2xs);
+		list-style: none;
+		margin: 0 0 var(--space-m);
+		max-inline-size: none;
+		padding: 0;
+	}
+
+	.project__body {
+		margin-block-start: var(--space-m);
+	}
+
+	/*
+	 * Body images come from the Markdown pipeline, so they carry Astro's own
+	 * width and height and need only to be kept inside the column.
+	 */
+	.project__body :global(img) {
+		border: var(--border-width) solid var(--border);
+		border-radius: var(--radius-m);
+		max-inline-size: 100%;
+	}
+
+	.project__body :global(h2) {
+		font-size: var(--step-1);
+	}
+
+	.project__body :global(h3) {
+		font-size: var(--step-0);
+	}
+
+	.project__body :global(blockquote) {
+		border-inline-start: 2px solid var(--border-strong);
+		color: var(--text-muted);
+		padding-inline-start: var(--space-s);
+	}
+
+	.projects-filter {
+		align-items: baseline;
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2xs) var(--space-s);
+		margin-block-start: var(--space-l);
+	}
+
+	.projects-filter__label {
+		color: var(--text-muted);
+		font-size: var(--step--1);
+	}
+
+	.projects-filter__select {
+		background-color: var(--surface);
+		border: var(--border-width) solid var(--border-strong);
+		border-radius: var(--radius-m);
+		color: var(--text);
+		font: inherit;
+		font-size: var(--step--1);
+		padding: var(--space-3xs) var(--space-2xs);
+	}
+
+	.projects-filter__status {
+		color: var(--text-faint);
+		font-size: var(--step--1);
+	}
+
+	.project[hidden],
+	.projects-toc__list li[hidden] {
+		display: none;
+	}
+
+	@media (min-width: 32rem) {
+		.projects-toc__list {
+			columns: 3;
+		}
+	}
+</style>
+
+<script>
+	// Progressive enhancement only: every section is already in the document,
+	// so this narrows what is shown rather than building the list. With the
+	// script absent the filter stays `hidden` and all fifteen render.
+	const filter = document.getElementById('stack-filter');
+	const select = document.getElementById('stack-select') as HTMLSelectElement | null;
+	const status = document.querySelector<HTMLElement>('.projects-filter__status');
+
+	const delimiter = filter?.dataset.delimiter;
+
+	if (filter && select && status && delimiter) {
+		const projects = [...document.querySelectorAll<HTMLElement>('.project[data-stacks]')];
+		const tocItems = [...document.querySelectorAll<HTMLElement>('.projects-toc__list li[data-stacks]')];
+
+		const matches = (element: HTMLElement, stack: string) =>
+			stack === '' || (element.dataset.stacks ?? '').split(delimiter).includes(stack);
+
+		const apply = () => {
+			const stack = select.value;
+
+			for (const element of [...projects, ...tocItems]) {
+				element.hidden = !matches(element, stack);
+			}
+
+			const shown = projects.filter((project) => !project.hidden).length;
+			status.textContent =
+				stack === '' ? '' : `Showing ${shown} of ${projects.length} projects.`;
+		};
+
+		filter.hidden = false;
+		select.addEventListener('change', apply);
+		apply();
+	}
+</script>

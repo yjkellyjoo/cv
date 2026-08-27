@@ -1,0 +1,53 @@
+---
+/**
+ * The section shell every section on `/` and `/projects/` shares: an `<h2>`,
+ * an optional standfirst paragraph, then whatever body the caller slots in.
+ * Keeping the heading and rhythm here means each section (about, experience,
+ * selected work, research, education, contact, and the `/projects/` list)
+ * only has to supply its own body markup.
+ *
+ * `wide` switches the inner wrapper from `.wrapper` to `.wrapper--wide` for a
+ * section whose body needs the wider column — a card grid or a filterable
+ * list — rather than prose measure.
+ */
+interface Props {
+	title: string;
+	standfirst?: string;
+	id?: string;
+	wide?: boolean;
+}
+
+const { title, standfirst, id, wide = false } = Astro.props;
+---
+
+<section id={id} class="section">
+	<div class:list={['wrapper', wide && 'wrapper--wide']}>
+		<h2>{title}</h2>
+		{standfirst && <p class="standfirst">{standfirst}</p>}
+		<slot />
+	</div>
+</section>
+
+<style>
+	.section {
+		padding-block: var(--space-2xl);
+	}
+
+	.section + .section {
+		border-block-start: var(--border-width) solid var(--border);
+	}
+
+	/* global.css zeroes every margin, so the heading needs its own gap to the
+	   next thing — the standfirst when there is one, the slotted body when
+	   there isn't. Without this an h2 with no standfirst ran straight into its
+	   body with no gap at all. */
+	h2 {
+		margin-block-end: var(--space-s);
+	}
+
+	.standfirst {
+		color: var(--text-muted);
+		font-size: var(--step-1);
+		margin-block-end: var(--space-m);
+	}
+</style>

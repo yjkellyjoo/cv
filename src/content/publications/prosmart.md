@@ -4,7 +4,7 @@ venue: Thesis for the Degree of Master, Korea University
 date: 2022-02-01
 authorship: 1st Author
 pdfUrl: /thesis/prosmart.pdf
-demoUrl: https://iotcube.net/process/type/prost
+demoUrl: https://iotqv.korea.ac.kr/sast/prost
 project: smart-contract-vulnerability-detection
 ---
 
