@@ -13,7 +13,7 @@ links:
   - label: Source code
     url: https://github.com/authLegacy/auth-legacy
   - label: Pitch deck
-    url: https://www.canva.com/design/DAGWoq-ITlE/tPekMg5XMg1sa1PuSJIcAA/edit
+    url: https://www.canva.com/design/DAGWoq-ITlE/tPekMg5XMg1sa1PuSJIcAA/view
 ---
 
 **Blockscout Explorer and Coinbase Developer Platform OnchainKit pool prizes, ETHGlobal Bangkok 2024.**
