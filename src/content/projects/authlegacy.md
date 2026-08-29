@@ -4,7 +4,7 @@ summary: Blockchain-backed record of a physical object's history, authenticity a
 logo: ../../assets/icons/authlegacy.svg
 dateStart: 2024-11-15
 dateEnd: 2024-11-17
-stacks: [Next.js, TypeScript, TailwindCSS, wagmi, viem]
+stacks: [Next.js, TypeScript, Tailwind CSS, OnchainKit, ethers.js, wagmi, viem, Lighthouse]
 topics: [Blockchain, NFT, Web3]
 scale: Small
 links:
@@ -19,7 +19,7 @@ links:
 **Blockscout Explorer and Coinbase Developer Platform OnchainKit pool prizes, ETHGlobal Bangkok 2024.**
 
 Every item tells a story, and nothing durable carries it.
-Authenticity, ownership and lifecycle data for physical goods sit in paper certificates and private databases that rarely survive a resale — which is the gap a counterfeit market worth $500B+ a year trades in, and the reason regulation like the EU's Digital Product Passport is arriving to close it.
+Authenticity, ownership and lifecycle data for physical goods sit in paper certificates and private databases that rarely survive a resale — which is the gap a [counterfeit trade worth USD 467 billion a year](https://www.euipo.europa.eu/en/news/observatory/euipo-and-oecd-publish-a-report-on-counterfeit-and-pirated-trade) operates in, and the reason regulation like the [EU's Digital Product Passport](https://commission.europa.eu/energy-climate-change-environment/standards-tools-and-labels/products-labelling-rules-and-requirements/ecodesign-sustainable-products-regulation_en) is arriving to close it.
 AuthLegacy puts that record on-chain instead, so provenance travels with the object rather than with whoever last held the paperwork.
 
 ## How it works
@@ -48,4 +48,4 @@ Two things follow from that.
 A resale keeps its history, which is what makes reuse worth more than replacement.
 And traceability that a regulator can check is a by-product of the same record, rather than a second compliance system built alongside it.
 
-**Stack:** Next.js, TypeScript, TailwindCSS; OnchainKit (Coinbase Developer Platform, on Base), ethers.js, wagmi, viem; Lighthouse for storage.
+**Stack:** Next.js, TypeScript, Tailwind CSS; OnchainKit (Coinbase Developer Platform, on Base), ethers.js, wagmi, viem; Lighthouse for storage.
