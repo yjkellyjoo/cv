@@ -11,8 +11,6 @@ featured: true
 links:
   - label: Showcase
     url: https://devfolio.co/projects/onchainfund-3574
-  - label: Live demo
-    url: https://on-chain-fund-vert.vercel.app/home
   - label: Source code
     url: https://github.com/on-chain-fund/on-chain-fund
   - label: Pitch deck

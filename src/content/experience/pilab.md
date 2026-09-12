@@ -10,5 +10,5 @@ stacks: [Kotlin, Spring Cloud Gateway, Spring Security, Python, FastAPI, uvicorn
 
 - Owned the **Bifrost Multichain Observer**: automated monitoring of smart contract events and Bitcoin UTXO transactions across **7+ chains**, exposed through developer-facing APIs in Python and FastAPI.
 - Created and maintained the **Bifrost API Service**, a gateway giving external clients a single entry point into the company's internal microservices and enabling seamless cross-chain swaps.
-  Authored and maintained its [technical documentation](https://docs.api.bifrostnetwork.com/) and user tutorials.
+  Authored and maintained its technical documentation and user tutorials.
 - Built the **Multichain Airdrop** engine — multithreaded Python for automated cross-chain token distribution to new users of the [Bifrost Bridge](https://www.bifrostnetwork.com/bridge).

@@ -1,0 +1,52 @@
+---
+/**
+ * A single pill for one entry of a `stacks` or `topics` array — the named
+ * technologies a project or role used, versus the conceptual tags it carries.
+ *
+ * Both kinds render as pills; `kind` is the only thing that tells them apart.
+ * `stack` pills are monospace, per the design direction that reserves
+ * monospace for stack pills and inline code. `topic` pills stay in the sans
+ * stack with a dashed border, so a list mixing both reads at a glance which
+ * are named tools and which are descriptive tags.
+ *
+ * This pill carried a `data-value` attribute for a while, on the expectation
+ * that the stack filter would match against it rather than against rendered
+ * text. The filter reads a `data-stacks` attribute on the project article
+ * instead: one attribute read per project beats walking into its pills and
+ * separating the stack ones from the topic ones. Nothing read `data-value`,
+ * so it is gone — an attribute kept for a consumer that never arrived is the
+ * kind of thing that outlives the reason for it and misleads the next reader.
+ */
+interface Props {
+	label: string;
+	kind?: 'stack' | 'topic';
+}
+
+const { label, kind = 'stack' } = Astro.props;
+---
+
+<span class:list={['pill', kind === 'topic' && 'pill--topic']}>{label}</span>
+
+<style>
+	.pill {
+		display: inline-flex;
+		align-items: center;
+		border-radius: var(--radius-pill);
+		border: var(--border-width) solid var(--border);
+		background-color: var(--bg-subtle);
+		color: var(--text-muted);
+		font-family: var(--font-mono);
+		font-size: var(--step--2);
+		line-height: 1;
+		padding-block: var(--space-3xs);
+		padding-inline: var(--space-2xs);
+	}
+
+	.pill--topic {
+		background-color: transparent;
+		border-style: dashed;
+		color: var(--text-faint);
+		font-family: var(--font-sans);
+		font-weight: var(--weight-medium);
+	}
+</style>

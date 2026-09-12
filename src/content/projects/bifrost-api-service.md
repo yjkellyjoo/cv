@@ -8,9 +8,6 @@ stacks: [Kotlin, OAuth2, Spring]
 topics: [API, Blockchain, Gateway]
 scale: Big
 featured: true
-links:
-  - label: API documentation
-    url: https://docs.api.bifrostnetwork.com/
 ---
 
 Created and maintained the Bifrost API Service — a single entry point through which external clients reach the internal microservices in Bifrost's ecosystem, enabling cross-chain swaps.

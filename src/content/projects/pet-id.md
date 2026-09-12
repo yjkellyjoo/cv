@@ -11,8 +11,6 @@ featured: true
 links:
   - label: Showcase
     url: https://ethglobal.com/showcase/pet-id-86oi1
-  - label: Live demo
-    url: https://app.pet-id.eth.pm/
   - label: Source code
     url: https://github.com/Pet-ID-Vault/pet-id
   - label: Pitch deck

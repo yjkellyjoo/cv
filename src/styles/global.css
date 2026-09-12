@@ -262,3 +262,24 @@ hr {
 .wrapper--wide {
 	inline-size: min(100% - var(--gutter) * 2, var(--wide-width));
 }
+
+/*
+ * Vertical rhythm for prose-shaped content. `* { margin: 0 }` above means
+ * nothing slotted into a `Section` gets spacing between its own children
+ * unless something restores it — and the content varies too much to give
+ * each element its own margin rule: two `<p>`s in About today, an experience
+ * entry's bullet list tomorrow, a project's fully Markdown-rendered body
+ * (heading, paragraphs, lists, images, in whatever order the source uses)
+ * after that. `.flow` targets the parent-child relationship, not named
+ * elements, so it works on content whose exact tags aren't known up front —
+ * add it to the wrapper around a `Content />` render and every top-level
+ * block it emits gets spaced the same way, no per-element class required.
+ *
+ * Deliberately opt-in rather than applied to every `Section` slot: a section
+ * can just as easily hold something that already manages its own spacing —
+ * Contact's `<dl>` grid, a card grid, a timeline — where a second gap on top
+ * would only throw off spacing that's already correct.
+ */
+.flow > * + * {
+	margin-block-start: var(--space-m);
+}

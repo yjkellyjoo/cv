@@ -63,6 +63,13 @@ Payload size also matters more than usual, since every byte becomes a paid-for c
 
 Small amounts of self-contained vanilla JS are fine, though. The constraint that actually binds is self-containment: an uploaded manifest must render on its own, so anything making a third-party request at runtime is what breaks it — not a kilobyte of inline script.
 
+## The plan
+
+[`docs/notion-port-plan.md`](docs/notion-port-plan.md) is the plan this port follows, milestone by milestone — the decisions behind the routes, the content model, the design direction, and the Cloudflare and Swarm cutover.
+It lived outside the repository while M0 through M2 were built, which made it easy to lose; it is committed here so the reasoning survives alongside the code.
+
+Read it for *why* rather than *what*. Parts have been overtaken by decisions made while building — the `stacks` / `topics` split in #10, for one — and those live in the issues and in the code's own comments.
+
 ## Source material
 
 The Notion HTML export this site is ported from is deliberately not committed (see `.gitignore`).
